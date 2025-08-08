@@ -3,14 +3,23 @@ import { fetchJSON } from '@/lib/api'
 type ServiceStatus = { name: string; status: 'up'|'degraded'|'down' }
 
 export default async function ServicesStatus() {
-  // Derive from registry/analytics later; stub request failure fallback
-  let statuses: ServiceStatus[] = [
-    { name: 'Identity', status: 'up' },
-    { name: 'Registry', status: 'up' },
-    { name: 'Eligibility', status: 'up' },
-    { name: 'Payment', status: 'degraded' },
-    { name: 'Analytics', status: 'up' },
+  async function probe(name: string, base: string): Promise<ServiceStatus> {
+    try {
+      const r = await fetch(`${base}/health`, { cache: 'no-store' })
+      if (r.ok) return { name, status: 'up' }
+      return { name, status: 'degraded' }
+    } catch {
+      return { name, status: 'down' }
+    }
+  }
+  const bases: [string, string][] = [
+    ['Identity','http://localhost:8001'],
+    ['Registry','http://localhost:8002'],
+    ['Eligibility','http://localhost:8003'],
+    ['Payment','http://localhost:8004'],
+    ['Analytics','http://localhost:8005'],
   ]
+  const statuses = await Promise.all(bases.map(([n,b]) => probe(n,b)))
   return (
     <ul className="text-sm space-y-2">
       {statuses.map(s => (
