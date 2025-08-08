@@ -1,5 +1,7 @@
 import StatTile from '../components/StatTile'
 import SectionCard from '../components/SectionCard'
+import ServicesStatus from './ServicesStatus'
+import Stats from './Stats'
 
 export default function OperationsPage() {
   return (
@@ -9,12 +11,8 @@ export default function OperationsPage() {
         <div className="text-sm text-gov-muted">Last Update: 2024-12-20 14:23:45</div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile label="SYSTEM AVAILABILITY" value="99.97%" delta="0.02%" trend="up" />
-        <StatTile label="ACTIVE USERS" value="245,892" delta="12.3%" trend="up" />
-        <StatTile label="TRANSACTIONS/MIN" value="8,456" delta="5.2%" trend="up" />
-        <StatTile label="ERROR RATE" value="0.03%" delta="0.01%" trend="down" />
-      </div>
+      {/* @ts-expect-error Async Server Component */}
+      <Stats />
 
       <SectionCard title="SYSTEM HEALTH MAP">
         <div className="text-sm text-gov-muted">Philippines Regional Status (mock)</div>
@@ -31,14 +29,8 @@ export default function OperationsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionCard title="SERVICE STATUS">
-          <ul className="text-sm space-y-2">
-            {['Identity','Registry','Eligibility','Payment','Analytics','Notification','Document','Audit'].map((s, i) => (
-              <li key={s} className="flex items-center justify-between">
-                <span>{s} Service</span>
-                <span className="text-gov-success">[████████●]</span>
-              </li>
-            ))}
-          </ul>
+          {/* @ts-expect-error Async Server Component */}
+          <ServicesStatus />
         </SectionCard>
         <SectionCard title="RESPONSE TIME TREND (Last 24 Hours)">
           <div className="h-48 bg-gov-bg border border-dashed border-gov-border rounded flex items-center justify-center text-gov-muted">

@@ -1,12 +1,18 @@
 import SectionCard from '../components/SectionCard'
+import AnalyticsSummaryCard from './AnalyticsSummary'
 
 export default function AnalyticsPage(){
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Analytics & Business Intelligence</h2>
 
+      <SectionCard title="ANALYTICS SUMMARY">
+        {/* @ts-expect-error Async Server Component */}
+        <AnalyticsSummaryCard />
+      </SectionCard>
+
       <SectionCard title="PREDICTIVE ANALYTICS">
-        <div className="text-sm">Vulnerability Risk Prediction (Next 6 Months) — Accuracy: 87%</div>
+        <div className="text-sm">Vulnerability Risk Prediction (Next 6 Months) — Accuracy pulled above</div>
         <div className="h-48 bg-gov-bg border border-dashed border-gov-border rounded flex items-center justify-center text-gov-muted mt-2">Multi-series line chart placeholder</div>
         <div className="text-sm mt-2">Key Factors: Economic indicators, weather patterns, employment rates</div>
       </SectionCard>
