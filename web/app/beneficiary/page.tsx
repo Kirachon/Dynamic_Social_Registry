@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import PaymentTable from './PaymentTable'
 
 export default function BeneficiaryPage(){
   return (
@@ -41,19 +42,9 @@ export default function BeneficiaryPage(){
           </ul>
         </SectionCard>
         <SectionCard title="PAYMENT HISTORY">
-          <table className="w-full text-sm">
-            <thead className="text-left text-gov-muted"><tr><th>ID</th><th>Amount</th><th>Status</th></tr></thead>
-            <tbody>
-              {/* Example of switching to backend API later */}
-              {[
-                ['P1','₱3,000','Completed'],
-                ['P2','₱3,000','Completed'],
-                ['P3','₱3,000','Completed'],
-              ].map(([id,a,s]) => (
-                <tr key={id} className="border-t border-gov-border"><td className="py-1">{id}</td><td>{a}</td><td>{s}</td></tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Server component fetch to backend API with fallback */}
+          {/* @ts-expect-error Async Server Component */}
+          <PaymentTable />
           <div className="mt-2 flex gap-2"><button className="px-3 py-1 border rounded text-sm">View All</button><button className="px-3 py-1 border rounded text-sm">Download Statement</button><button className="px-3 py-1 border rounded text-sm">Report Issue</button></div>
         </SectionCard>
       </div>
