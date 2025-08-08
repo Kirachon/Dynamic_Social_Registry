@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/beneficiary/page": "app/beneficiary/page.js",
+  "/executive/page": "app/executive/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/mobile/registration/page": "app/mobile/registration/page.js",
+  "/page": "app/page.js",
+  "/field/page": "app/field/page.js",
+  "/soc/page": "app/soc/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/programs/page": "app/programs/page.js",
+  "/operations/page": "app/operations/page.js",
+  "/payments/page": "app/payments/page.js",
+  "/quality/page": "app/quality/page.js"
+}
