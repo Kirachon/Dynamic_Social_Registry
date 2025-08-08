@@ -1,5 +1,6 @@
 import StatTile from '../components/StatTile'
 import SectionCard from '../components/SectionCard'
+import ServicesStatus from './ServicesStatus'
 
 export default function OperationsPage() {
   return (
@@ -31,14 +32,8 @@ export default function OperationsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionCard title="SERVICE STATUS">
-          <ul className="text-sm space-y-2">
-            {['Identity','Registry','Eligibility','Payment','Analytics','Notification','Document','Audit'].map((s, i) => (
-              <li key={s} className="flex items-center justify-between">
-                <span>{s} Service</span>
-                <span className="text-gov-success">[████████●]</span>
-              </li>
-            ))}
-          </ul>
+          {/* @ts-expect-error Async Server Component */}
+          <ServicesStatus />
         </SectionCard>
         <SectionCard title="RESPONSE TIME TREND (Last 24 Hours)">
           <div className="h-48 bg-gov-bg border border-dashed border-gov-border rounded flex items-center justify-center text-gov-muted">

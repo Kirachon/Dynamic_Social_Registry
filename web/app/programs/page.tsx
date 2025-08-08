@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import EligibilitySummary from './EligibilitySummary'
 
 export default function ProgramsPage(){
   return (
@@ -21,14 +22,8 @@ export default function ProgramsPage(){
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionCard title="ELIGIBILITY PROCESSING">
-          <div className="text-sm space-y-1">
-            <div>Total Applications: 125,432</div>
-            <div>████████████ Approved 89,456</div>
-            <div>████ Pending 15,234</div>
-            <div>██ Rejected 10,234</div>
-            <div>█ Under Review 10,508</div>
-            <div>Avg Processing Time: 3.2 days (▼ 1.5 days)</div>
-          </div>
+          {/* @ts-expect-error Async Server Component */}
+          <EligibilitySummary />
         </SectionCard>
         <SectionCard title="GEOGRAPHIC DISTRIBUTION">
           <div className="h-48 bg-gov-bg border border-dashed border-gov-border rounded flex items-center justify-center text-gov-muted">Heat map placeholder</div>
