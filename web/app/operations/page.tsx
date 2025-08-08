@@ -1,6 +1,7 @@
 import StatTile from '../components/StatTile'
 import SectionCard from '../components/SectionCard'
 import ServicesStatus from './ServicesStatus'
+import Stats from './Stats'
 
 export default function OperationsPage() {
   return (
@@ -10,12 +11,8 @@ export default function OperationsPage() {
         <div className="text-sm text-gov-muted">Last Update: 2024-12-20 14:23:45</div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile label="SYSTEM AVAILABILITY" value="99.97%" delta="0.02%" trend="up" />
-        <StatTile label="ACTIVE USERS" value="245,892" delta="12.3%" trend="up" />
-        <StatTile label="TRANSACTIONS/MIN" value="8,456" delta="5.2%" trend="up" />
-        <StatTile label="ERROR RATE" value="0.03%" delta="0.01%" trend="down" />
-      </div>
+      {/* @ts-expect-error Async Server Component */}
+      <Stats />
 
       <SectionCard title="SYSTEM HEALTH MAP">
         <div className="text-sm text-gov-muted">Philippines Regional Status (mock)</div>
