@@ -42,14 +42,15 @@ export default function BeneficiaryPage(){
         </SectionCard>
         <SectionCard title="PAYMENT HISTORY">
           <table className="w-full text-sm">
-            <thead className="text-left text-gov-muted"><tr><th>Date</th><th>Program</th><th>Amount</th><th>Status</th></tr></thead>
+            <thead className="text-left text-gov-muted"><tr><th>ID</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody>
+              {/* Example of switching to backend API later */}
               {[
-                ['Dec 20','4Ps','₱3,000','✓ Completed'],
-                ['Nov 20','4Ps','₱3,000','✓ Completed'],
-                ['Oct 20','4Ps','₱3,000','✓ Completed'],
-              ].map(([d,p,a,s]) => (
-                <tr key={d+p} className="border-t border-gov-border"><td className="py-1">{d}</td><td>{p}</td><td>{a}</td><td>{s}</td></tr>
+                ['P1','₱3,000','Completed'],
+                ['P2','₱3,000','Completed'],
+                ['P3','₱3,000','Completed'],
+              ].map(([id,a,s]) => (
+                <tr key={id} className="border-t border-gov-border"><td className="py-1">{id}</td><td>{a}</td><td>{s}</td></tr>
               ))}
             </tbody>
           </table>

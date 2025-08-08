@@ -1,0 +1,37 @@
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
+from typing import List
+from dsrs_common.logging import configure_logging
+from dsrs_common.security import get_current_user, AuthSettings
+from .db import SessionLocal, Base, engine
+from .repository import HouseholdRepository
+
+app = FastAPI(title="DSRS Registry Service", version="0.1.0")
+configure_logging()
+Base.metadata.create_all(bind=engine)
+
+# DI settings
+async def auth_settings():
+    return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
+
+class HouseholdDTO(BaseModel):
+    id: str
+    household_number: str
+    region_code: str
+    pmt_score: float
+    status: str
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+@app.get("/api/v1/households", response_model=List[HouseholdDTO])
+async def list_households(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    db = SessionLocal()
+    try:
+        repo = HouseholdRepository(db)
+        rows = repo.list()
+        return [HouseholdDTO.model_validate(r.__dict__) for r in rows]
+    finally:
+        db.close()
+

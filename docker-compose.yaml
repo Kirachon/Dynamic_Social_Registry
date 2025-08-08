@@ -1,0 +1,79 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: dsrs
+      POSTGRES_USER: dsrs
+      POSTGRES_DB: dsrs
+    ports: ["5432:5432"]
+  mongo:
+    image: mongo:6
+    ports: ["27017:27017"]
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  identity:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.fastapi
+      args:
+        SERVICE_PATH: services/identity
+    environment:
+      ISSUER: http://localhost:8080/realms/dsrs
+      AUDIENCE: dsrs-api
+    ports: ["8001:8000"]
+
+  registry:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.fastapi
+      args:
+        SERVICE_PATH: services/registry
+    environment:
+      ISSUER: http://localhost:8080/realms/dsrs
+      AUDIENCE: dsrs-api
+      DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
+    depends_on: [postgres]
+    ports: ["8002:8000"]
+
+  eligibility:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.fastapi
+      args:
+        SERVICE_PATH: services/eligibility
+    environment:
+      ISSUER: http://localhost:8080/realms/dsrs
+      AUDIENCE: dsrs-api
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [redis]
+    ports: ["8003:8000"]
+
+  payment:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.fastapi
+      args:
+        SERVICE_PATH: services/payment
+    environment:
+      ISSUER: http://localhost:8080/realms/dsrs
+      AUDIENCE: dsrs-api
+      DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
+    depends_on: [postgres]
+    ports: ["8004:8000"]
+
+  analytics:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.fastapi
+      args:
+        SERVICE_PATH: services/analytics
+    environment:
+      ISSUER: http://localhost:8080/realms/dsrs
+      AUDIENCE: dsrs-api
+      MONGO_URL: mongodb://mongo:27017
+    depends_on: [mongo]
+    ports: ["8005:8000"]
+
