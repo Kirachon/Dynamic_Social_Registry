@@ -23,6 +23,7 @@ services:
     environment:
       ISSUER: http://localhost:8080/realms/dsrs
       AUDIENCE: dsrs-api
+      ALLOW_INSECURE_LOCAL: "1"
     ports: ["8001:8000"]
 
   registry:
