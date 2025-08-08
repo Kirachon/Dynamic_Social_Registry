@@ -1,14 +1,27 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from dsrs_common.logging import configure_logging
 from dsrs_common.security import get_current_user, AuthSettings
 from .db import SessionLocal, Base, engine
 from .repository import HouseholdRepository
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="DSRS Registry Service", version="0.1.0")
+
+# CORS for local dev (do not use wildcard in prod)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 configure_logging()
 Base.metadata.create_all(bind=engine)
+Instrumentator().instrument(app).expose(app)
 
 # DI settings
 async def auth_settings():
