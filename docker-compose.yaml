@@ -35,6 +35,7 @@ services:
     environment:
       ISSUER: http://localhost:8080/realms/dsrs
       AUDIENCE: dsrs-api
+      ALLOW_INSECURE_LOCAL: "1"
       DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
     depends_on: [postgres]
     ports: ["8002:8000"]
