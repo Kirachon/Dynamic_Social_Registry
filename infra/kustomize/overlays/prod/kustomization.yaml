@@ -12,12 +12,14 @@ resources:
 configMapGenerator:
   - name: dsrs-config
     literals:
+      - ENVIRONMENT=production
       - CORS_ALLOW_ORIGINS=https://dsrs.example
       - LOG_JSON=1
       - OTEL_ENABLE=1
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - ISSUER=https://auth.dsrs.example/realms/dsrs
       - AUDIENCE=dsrs-api
+      # NOTE: ALLOW_INSECURE_LOCAL is NOT set - JWT enforcement is mandatory in production
 secretGenerator:
   - name: dsrs-secrets
     literals:
