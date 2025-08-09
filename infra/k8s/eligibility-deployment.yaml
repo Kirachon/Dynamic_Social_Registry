@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eligibility
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eligibility
+  template:
+    metadata:
+      labels:
+        app: eligibility
+    spec:
+      containers:
+        - name: eligibility
+          image: ghcr.io/your-org/eligibility:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ISSUER
+              value: https://auth.yourdomain/realms/dsrs
+            - name: AUDIENCE
+              value: dsrs-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eligibility
+spec:
+  selector:
+    app: eligibility
+  ports:
+    - port: 80
+      targetPort: 8000
+

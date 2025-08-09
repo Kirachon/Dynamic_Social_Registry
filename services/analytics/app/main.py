@@ -5,6 +5,8 @@ from .schemas import AnalyticsSummary
 
 app = FastAPI(title="DSRS Analytics Service", version="0.1.0")
 configure_logging()
+from dsrs_common.tracing import init_tracing
+init_tracing("analytics", app)
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
