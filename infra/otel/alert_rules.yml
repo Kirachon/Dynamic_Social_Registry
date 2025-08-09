@@ -1,0 +1,28 @@
+groups:
+- name: dsrs-dlq
+  rules:
+  - alert: DLQBacklogHigh
+    expr: sum_over_time(kafka_consumergroup_lag[5m]) > 1000
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka DLQ backlog high"
+      description: "DLQ consumer group lag exceeds threshold for 10m"
+  - alert: DLQRetryFailuresHigh
+    expr: rate(dsrs_dlq_retry_failed_total[5m]) / (rate(dsrs_dlq_processed_total[5m]) + 1e-9) > 0.2
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "DLQ retry failure rate high"
+      description: "More than 20% of DLQ retries are failing over last 5m"
+  - alert: DLQReprocessorDown
+    expr: up{job="dlq-reprocessor"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "DLQ reprocessor is down"
+      description: "No scrape data for dlq-reprocessor job"
+

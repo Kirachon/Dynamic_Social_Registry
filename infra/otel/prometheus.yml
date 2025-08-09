@@ -1,5 +1,7 @@
 global:
   scrape_interval: 15s
+rule_files:
+  - alert_rules.yml
 scrape_configs:
   - job_name: 'registry'
     static_configs:
@@ -16,4 +18,7 @@ scrape_configs:
   - job_name: 'kong'
     static_configs:
       - targets: ['kong:8001']
+  - job_name: 'dlq-reprocessor'
+    static_configs:
+      - targets: ['dlq-reprocessor:8090']
 

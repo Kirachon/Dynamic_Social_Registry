@@ -16,6 +16,20 @@ spec:
         - name: worker
           image: ghcr.io/your-org/dsrs-shared:latest
           command: ["python","-m","services.shared.dsrs_common.dlq_reprocessor"]
+          ports:
+            - containerPort: 8090
+          livenessProbe:
+            httpGet:
+              path: /healthz/liveness
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz/readiness
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             - name: KAFKA_BROKERS
               valueFrom:
