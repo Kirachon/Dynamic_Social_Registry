@@ -2,6 +2,8 @@ import os
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from typing import Dict, List
+from sqlalchemy import text
+from .db import SessionLocal
 from dsrs_common.logging import configure_logging
 from dsrs_common.security import get_current_user, AuthSettings
 
@@ -40,4 +42,20 @@ async def health():
 @app.post("/api/v1/eligibility/check")
 async def check_eligibility(req: EligibilityRequest, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)) -> Dict[str, bool]:
     return {p: True for p in req.programs}
+
+@app.get("/api/v1/eligibility/summary")
+async def eligibility_summary(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    """Return basic eligibility statistics from the database.
+    approved: count of approved assessments
+    denied: count of denied assessments
+    pending: count of pending assessments (if used)
+    """
+    db = SessionLocal()
+    try:
+        approved = db.execute(text("SELECT COUNT(*) FROM eligibility_assessments WHERE eligibility_status='approved'" )).scalar_one()
+        denied = db.execute(text("SELECT COUNT(*) FROM eligibility_assessments WHERE eligibility_status='denied'" )).scalar_one()
+        pending = db.execute(text("SELECT COUNT(*) FROM eligibility_assessments WHERE eligibility_status='pending'" )).scalar_one()
+        return {"approved": int(approved), "rejected": int(denied), "pending": int(pending)}
+    finally:
+        db.close()
 

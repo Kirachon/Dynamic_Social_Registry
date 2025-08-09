@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ['Admin','/admin'],
                 ['Quality','/quality'],
                 ['Mobile Registration','/mobile/registration'],
+                ['Register Household','/registry/create'],
               ].map(([label, href]) => (
                 <div key={href}>
                   <Link className="block px-3 py-2 rounded hover:bg-gov-bg" href={href}>{label}</Link>
@@ -42,7 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <button className="md:hidden px-3 py-2 border rounded" aria-label="Open navigation">☰</button>
                 <span className="font-semibold">Dynamic Social Registry System</span>
               </div>
-              <div className="text-sm text-gov-muted">Prototype | Accessible Neutral Theme</div>
+              <div className="text-sm text-gov-muted flex items-center gap-3">
+                  <a href="/login" className="underline">Login</a>
+                  <span>Prototype | Accessible Neutral Theme</span>
+                </div>
             </header>
             <main id="main" className="p-4 max-w-[1600px] mx-auto">
               {children}
