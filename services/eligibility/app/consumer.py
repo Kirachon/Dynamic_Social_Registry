@@ -23,14 +23,21 @@ async def handle_registry_event(evt: Event):
         out_evt = Event(type=f"eligibility.assessed.{status}", source="eligibility", subject=data.get("id"), data={
             "id": data.get("id"),
             "status": status,
-        })
+        }, traceparent=evt.traceparent)
         db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),
                    {"id": out_evt.id, "agg": data.get("id"), "type": out_evt.type, "payload": out_evt.to_json()})
         db.execute(text("INSERT INTO processed_events (id) VALUES (:id)"), {"id": evt.id})
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        # TODO: publish to DLQ
+        # DLQ
+        try:
+            from dsrs_common.kafka import get_producer
+            from dsrs_common.dlq import publish_dlq
+            prod = await get_producer()
+            await publish_dlq(prod, evt, str(e))
+        except Exception:
+            pass
     finally:
         db.close()
 
@@ -41,6 +48,8 @@ async def consume_registry():
             msg = await consumer.getone()
             evt = Event.from_json(msg.value.decode("utf-8"))
             await handle_registry_event(evt)
+            from dsrs_common.metrics import EVENTS_CONSUMED
+            EVENTS_CONSUMED.labels(service="eligibility", topic=msg.topic).inc()
             await consumer.commit()
     finally:
         await consumer.stop()

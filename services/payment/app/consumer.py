@@ -20,14 +20,20 @@ async def handle_eligibility_event(evt: Event):
         db.execute(text("INSERT INTO payments (id, beneficiary_id, amount, status) VALUES (:id, :bid, :amt, :st)"),
                    {"id": pid, "bid": hid, "amt": 3000, "st": "Scheduled"})
         # outbox: payment.scheduled
-        out_evt = Event(type="payment.scheduled", source="payment", subject=pid, data={"id": pid, "beneficiary_id": hid, "amount": 3000, "status": "Scheduled"})
+        out_evt = Event(type="payment.scheduled", source="payment", subject=pid, data={"id": pid, "beneficiary_id": hid, "amount": 3000, "status": "Scheduled"}, traceparent=evt.traceparent)
         db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),
                    {"id": out_evt.id, "agg": pid, "type": out_evt.type, "payload": out_evt.to_json()})
         db.execute(text("INSERT INTO processed_events (id) VALUES (:id)"), {"id": evt.id})
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        # TODO DLQ
+        try:
+            from dsrs_common.kafka import get_producer
+            from dsrs_common.dlq import publish_dlq
+            prod = await get_producer()
+            await publish_dlq(prod, evt, str(e))
+        except Exception:
+            pass
     finally:
         db.close()
 
