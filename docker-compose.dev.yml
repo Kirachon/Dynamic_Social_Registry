@@ -1,0 +1,254 @@
+# Lightweight Docker Compose for Development
+# This configuration uses smaller, faster-to-download images for local development
+
+version: '3.8'
+
+services:
+  # PostgreSQL for main application data (lightweight Alpine version)
+  postgres:
+    image: postgres:15-alpine
+    container_name: dsrs_postgres_dev
+    environment:
+      POSTGRES_DB: dsrs_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d dsrs_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redpanda as lightweight Kafka alternative for development
+  redpanda:
+    image: redpandadata/redpanda:v23.2.8
+    container_name: dsrs_redpanda_dev
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 512M
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+      - --pandaproxy-addr 0.0.0.0:8082
+      - --advertise-pandaproxy-addr localhost:8082
+    ports:
+      - "8081:8081"  # Schema Registry
+      - "8082:8082"  # Pandaproxy (REST API)
+      - "9092:9092"  # Kafka API
+      - "9644:9644"  # Admin API
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster info"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MongoDB for analytics data (lightweight version)
+  mongodb:
+    image: mongo:7.0
+    container_name: dsrs_mongodb_dev
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dev
+      MONGO_INITDB_ROOT_PASSWORD: dev123
+      MONGO_INITDB_DATABASE: dsrs_analytics
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    ports:
+      - "27017:27017"
+    command: mongod --wiredTigerCacheSizeGB 0.25
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for caching (Alpine version)
+  redis:
+    image: redis:7-alpine
+    container_name: dsrs_redis_dev
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Registry Service
+  registry-service:
+    build:
+      context: .
+      dockerfile: ./services/registry/Dockerfile.dev
+    container_name: dsrs_registry_dev
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://dev:dev123@postgres:5432/dsrs_dev
+      - KAFKA_BROKERS=redpanda:29092
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=DEBUG
+      - OTEL_ENABLE=false
+      - ALLOW_INSECURE_LOCAL=1
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/registry:/app
+      - ./services/shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Eligibility Service
+  eligibility-service:
+    build:
+      context: .
+      dockerfile: ./services/eligibility/Dockerfile.dev
+    container_name: dsrs_eligibility_dev
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://dev:dev123@postgres:5432/dsrs_dev
+      - KAFKA_BROKERS=redpanda:29092
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=DEBUG
+      - OTEL_ENABLE=false
+      - ALLOW_INSECURE_LOCAL=1
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/eligibility:/app
+      - ./services/shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment/Dockerfile.dev
+    container_name: dsrs_payment_dev
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://dev:dev123@postgres:5432/dsrs_dev
+      - KAFKA_BROKERS=redpanda:29092
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=DEBUG
+      - OTEL_ENABLE=false
+      - ALLOW_INSECURE_LOCAL=1
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/payment:/app
+      - ./services/shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./services/analytics/Dockerfile.dev
+    container_name: dsrs_analytics_dev
+    environment:
+      - ENVIRONMENT=development
+      - MONGODB_URL=mongodb://analytics_service:dev123@mongodb:27017/dsrs_analytics
+      - KAFKA_BROKERS=redpanda:29092
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=DEBUG
+      - OTEL_ENABLE=false
+      - ALLOW_INSECURE_LOCAL=1
+    ports:
+      - "8004:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/analytics:/app
+      - ./services/shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Dashboard (Frontend)
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.dev
+    container_name: dsrs_dashboard_dev
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_BASE_URL=http://localhost:8001
+      - REACT_APP_ANALYTICS_API_URL=http://localhost:8004
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+    depends_on:
+      - registry-service
+      - analytics-service
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  mongodb_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  default:
+    name: dsrs_dev_network
+    driver: bridge
