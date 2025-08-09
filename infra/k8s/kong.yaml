@@ -61,6 +61,16 @@ data:
           claims_to_verify: ["exp"]
           key_claim_name: iss
           secret_is_base64: false
+      # Prefer OIDC (if plugin available in runtime). Configure via env/secret.
+      - name: openid-connect
+        config:
+          issuer: "$OIDC_ISSUER"
+          client_id: "$OIDC_CLIENT_ID"
+          client_secret: "$OIDC_CLIENT_SECRET"
+          scopes: ["openid","profile","email"]
+          bearer_only: true
+          verify_parameters: true
+          filters: ["~^/health$"]
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -99,6 +109,21 @@ spec:
                 configMapKeyRef:
                   name: dsrs-config
                   key: CORS_ALLOW_ORIGINS
+            - name: OIDC_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: ISSUER
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: dsrs-secrets
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: dsrs-secrets
+                  key: OIDC_CLIENT_SECRET
           ports:
             - containerPort: 8000
             - containerPort: 8001
