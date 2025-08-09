@@ -20,27 +20,50 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r services/${{ matrix.service }}/requirements.txt
-          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql]
+          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka]
       - name: Run unit tests
-        run: pytest -q
+        run: pytest -q services/${{ matrix.service }}/tests
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps (aggregate)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/registry/requirements.txt
+          pip install -r services/eligibility/requirements.txt
+          pip install -r services/payment/requirements.txt
+          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka]
+      - name: Run e2e tests (bounded)
+        env:
+          OTEL_ENABLE: "0"
+        run: pytest -q services/tests_e2e -k full_saga_end_to_end -q
 
   integration:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compose up (DBs and services)
+      - name: Compose up (DBs, services, gateway)
         run: |
           docker compose up -d --build postgres mongo redis
-          docker compose up -d --build registry payment analytics
-          # wait for services to become ready
+          ALLOW_INSECURE_LOCAL=0 docker compose up -d --build registry payment analytics identity eligibility kong
+          # wait for kong and services
+          for i in {1..60}; do curl -sf http://localhost:8000/ -o /dev/null && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8002/health && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8004/health && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8005/health && break || sleep 1; done
-      - name: API smoke tests
+      - name: API smoke tests via Kong (auth enforced)
         run: |
-          curl -f http://localhost:8002/api/v1/households || true
-          curl -f http://localhost:8004/api/v1/payments || true
-          curl -f http://localhost:8005/api/v1/analytics/summary
+          # Health via direct services (open)
+          curl -f http://localhost:8002/health
+          # Protected endpoints via Kong should be 401 without Authorization
+          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/registry/api/v1/households) -eq 401 || exit 1
+          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/payment/api/v1/payments) -eq 401 || exit 1
+          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/analytics/api/v1/analytics/summary) -eq 401 || exit 1
       - name: Compose down
         if: always()
         run: docker compose down -v

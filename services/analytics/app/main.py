@@ -10,6 +10,22 @@ apply_cors(app)
 from dsrs_common.tracing import init_tracing
 init_tracing("analytics", app)
 
+# Background consumer
+import os
+from .consumer import consume_analytics
+import asyncio
+
+_tasks = []
+@app.on_event("startup")
+async def _start():
+    mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    _tasks.append(asyncio.create_task(consume_analytics(mongo_url)))
+
+@app.on_event("shutdown")
+async def _stop():
+    for t in _tasks:
+        t.cancel()
+
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
 

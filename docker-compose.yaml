@@ -82,7 +82,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       MONGO_URL: mongodb://mongo:27017
-    depends_on: [mongo]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [mongo, redpanda]
     ports: ["8005:8000"]
 
   kong:
