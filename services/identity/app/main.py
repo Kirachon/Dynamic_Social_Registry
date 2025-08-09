@@ -1,13 +1,21 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from dsrs_common.logging import configure_logging
 
 app = FastAPI(title="DSRS Identity Service", version="0.1.0")
-configure_logging()
-from dsrs_common.cors import apply_cors
-apply_cors(app)
-from dsrs_common.tracing import init_tracing
-init_tracing("identity", app)
+
+def init_app():
+    """Initialize application components - called on startup, not import"""
+    configure_logging()
+    from dsrs_common.cors import apply_cors
+    apply_cors(app)
+    from dsrs_common.tracing import init_tracing
+    init_tracing("identity", app)
+
+# Only initialize if running as main application, not during testing
+if os.getenv("TESTING") != "1":
+    init_app()
 
 class AuthRequest(BaseModel):
     username: str

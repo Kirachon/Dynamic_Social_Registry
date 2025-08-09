@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from typing import List
@@ -7,12 +8,26 @@ from .db import SessionLocal, Base, engine
 from .repository import PaymentRepository
 
 app = FastAPI(title="DSRS Payment Service", version="0.1.0")
-configure_logging()
-from dsrs_common.cors import apply_cors
-apply_cors(app)
-Base.metadata.create_all(bind=engine)
-from dsrs_common.tracing import init_tracing
-init_tracing("payment", app)
+
+def init_app():
+    """Initialize application components - called on startup, not import"""
+    configure_logging()
+    from dsrs_common.cors import apply_cors
+    apply_cors(app)
+    Base.metadata.create_all(bind=engine)
+    from dsrs_common.tracing import init_tracing
+    init_tracing("payment", app)
+    from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+    from .health_checks import liveness_check, readiness_check
+    app.include_router(health_router)
+    set_liveness_checker(liveness_check)
+    set_readiness_checker(readiness_check)
+    from .startup import setup_background
+    setup_background(app)
+
+# Only initialize if running as main application, not during testing
+if os.getenv("TESTING") != "1":
+    init_app()
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")

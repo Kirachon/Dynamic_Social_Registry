@@ -1,5 +1,19 @@
 version: '3.9'
 services:
+  otel-collector:
+    image: otel/opentelemetry-collector:0.103.1
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./infra/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
   postgres:
     image: postgres:15
     environment:
@@ -37,7 +51,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
-    depends_on: [postgres]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8002:8000"]
 
   eligibility:
@@ -50,8 +65,9 @@ services:
       ISSUER: http://localhost:8080/realms/dsrs
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
-      REDIS_URL: redis://redis:6379/0
-    depends_on: [redis]
+      DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8003:8000"]
 
   payment:
@@ -65,7 +81,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
-    depends_on: [postgres]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8004:8000"]
 
   analytics:
@@ -79,7 +96,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       MONGO_URL: mongodb://mongo:27017
-    depends_on: [mongo]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [mongo, redpanda]
     ports: ["8005:8000"]
 
   kong:
@@ -103,4 +121,16 @@ services:
       - eligibility
       - payment
       - analytics
+
+  redpanda:
+    image: docker.redpanda.com/redpanda/redpanda:v24.1.8
+    command:
+      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "nc -z localhost 9092"]
+      interval: 5s
+      timeout: 2s
+      retries: 30
 

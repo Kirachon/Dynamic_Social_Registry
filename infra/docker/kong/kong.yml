@@ -48,4 +48,9 @@ plugins:
     config:
       allowed_payload_size: 10
   - name: bot-detection
+  - name: jwt
+    config:
+      claims_to_verify: ["exp"]
+      key_claim_name: iss
+      secret_is_base64: false
 

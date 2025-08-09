@@ -6,6 +6,9 @@ resources:
   - ../../k8s/eligibility-deployment.yaml
   - ../../k8s/payment-deployment.yaml
   - ../../k8s/analytics-deployment.yaml
+  - ../../k8s/otel-collector.yaml
+  - ../../k8s/dlq-reprocessor-deployment.yaml
+  - ../../k8s/grafana.yaml
 configMapGenerator:
   - name: dsrs-config
     literals:

@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends
+import os
+from fastapi import FastAPI, Depends, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -6,7 +7,9 @@ from dsrs_common.logging import configure_logging
 from dsrs_common.security import get_current_user, AuthSettings
 from .db import SessionLocal, Base, engine
 from .repository import HouseholdRepository
-from .schemas import HouseholdsSummary
+from .schemas import HouseholdsSummary, HouseholdCreate, HouseholdUpdate
+from .models import Household
+from .producer import emit_household_registered
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="DSRS Registry Service", version="0.1.0")
@@ -20,13 +23,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-configure_logging()
-from dsrs_common.cors import apply_cors
-apply_cors(app)
-Base.metadata.create_all(bind=engine)
-Instrumentator().instrument(app).expose(app)
-from dsrs_common.tracing import init_tracing
-init_tracing("registry", app)
+def init_app():
+    """Initialize application components - called on startup, not import"""
+    configure_logging()
+    from dsrs_common.cors import apply_cors
+    apply_cors(app)
+    Base.metadata.create_all(bind=engine)
+    Instrumentator().instrument(app).expose(app)
+    from dsrs_common.tracing import init_tracing
+    init_tracing("registry", app)
+    from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+    from .health_checks import liveness_check, readiness_check
+    app.include_router(health_router)
+    set_liveness_checker(liveness_check)
+    set_readiness_checker(readiness_check)
+    from .startup import setup_background
+    setup_background(app)
+
+# Only initialize if running as main application, not during testing
+if os.getenv("TESTING") != "1":
+    init_app()
 
 # DI settings
 async def auth_settings():
@@ -62,3 +78,46 @@ async def households_summary(user=Depends(get_current_user), settings: AuthSetti
     finally:
         db.close()
 
+@app.post("/api/v1/households", response_model=HouseholdDTO, status_code=201)
+async def create_household(payload: HouseholdCreate, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    db = SessionLocal()
+    try:
+        h = Household(id=payload.id, household_number=payload.household_number, region_code=payload.region_code, pmt_score=payload.pmt_score, status=payload.status)
+        db.add(h)
+        # atomic outbox: insert within the same transaction before commit
+        emit_household_registered(h, db=db)
+        db.commit()
+        return HouseholdDTO.model_validate(h.__dict__)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+
+@app.put("/api/v1/households/{id}", response_model=HouseholdDTO)
+async def update_household(id: str = Path(..., min_length=1, max_length=36), payload: HouseholdUpdate = None, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    db = SessionLocal()
+    try:
+        h = db.get(Household, id)
+        if not h:
+            raise HTTPException(status_code=404, detail="Household not found")
+        if payload.household_number is not None:
+            h.household_number = payload.household_number
+        if payload.region_code is not None:
+            h.region_code = payload.region_code
+        if payload.pmt_score is not None:
+            h.pmt_score = payload.pmt_score
+        if payload.status is not None:
+            h.status = payload.status
+        # atomic outbox: insert within same transaction
+        emit_household_registered(h, db=db)
+        db.commit()
+        return HouseholdDTO.model_validate(h.__dict__)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()

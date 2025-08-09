@@ -61,6 +61,8 @@ data:
           claims_to_verify: ["exp"]
           key_claim_name: iss
           secret_is_base64: false
+      # Note: Using service-level JWT/JWKS verification (open-source) instead of enterprise OIDC at gateway.
+      # Kong continues to provide rate-limiting, CORS, and size limits. Consider enabling free community OIDC plugin if available.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -99,6 +101,21 @@ spec:
                 configMapKeyRef:
                   name: dsrs-config
                   key: CORS_ALLOW_ORIGINS
+            - name: OIDC_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: ISSUER
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: dsrs-secrets
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: dsrs-secrets
+                  key: OIDC_CLIENT_SECRET
           ports:
             - containerPort: 8000
             - containerPort: 8001
