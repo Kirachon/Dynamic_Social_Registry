@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dlq-reprocessor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dlq-reprocessor
+  template:
+    metadata:
+      labels:
+        app: dlq-reprocessor
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/your-org/dsrs-shared:latest
+          command: ["python","-m","services.shared.dsrs_common.dlq_reprocessor"]
+          env:
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: KAFKA_BROKERS
+

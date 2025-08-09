@@ -6,6 +6,8 @@ resources:
   - ../../k8s/eligibility-deployment.yaml
   - ../../k8s/payment-deployment.yaml
   - ../../k8s/analytics-deployment.yaml
+  - ../../k8s/otel-collector.yaml
+  - ../../k8s/dlq-reprocessor-deployment.yaml
 configMapGenerator:
   - name: dsrs-config
     literals:
@@ -15,6 +17,7 @@ configMapGenerator:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - ISSUER=https://auth.staging.example/realms/dsrs
       - AUDIENCE=dsrs-api
+      - KAFKA_BROKERS=dsrs-kafka-kafka-bootstrap:9092
 secretGenerator:
   - name: dsrs-secrets
     literals:
