@@ -1,5 +1,9 @@
+import os
+os.environ["TESTING"] = "1"
+os.environ["OTEL_ENABLE"] = "0"
+
 from httpx import AsyncClient
-from app.main import app
+from services.registry.app.main import app
 import pytest
 
 @pytest.mark.asyncio

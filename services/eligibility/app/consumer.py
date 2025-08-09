@@ -1,10 +1,7 @@
-import asyncio
-from aiokafka import AIOKafkaConsumer
 from sqlalchemy import text
 from dsrs_common.events import Event
 from dsrs_common.kafka import make_consumer
-from dsrs_common.events import topic_for
-from .db import engine, SessionLocal
+from .db import SessionLocal
 
 from .metrics import ELIGIBILITY_DECISIONS, ELIGIBILITY_PROCESSING_TIME
 

@@ -4,7 +4,6 @@ import asyncio
 from testcontainers.kafka import KafkaContainer
 from dsrs_common.events import Event
 from dsrs_common.kafka import get_producer, make_consumer, next_event
-from dsrs_common.dlq import publish_dlq
 from dsrs_common.dlq_reprocessor import dlq_reprocess_loop
 
 @pytest.mark.asyncio

@@ -1,5 +1,4 @@
 import asyncio
-import json
 from sqlalchemy import text
 from .db import SessionLocal
 from dsrs_common.events import Event, topic_for

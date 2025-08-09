@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dsrs-services
+spec:
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [identity, registry, eligibility, payment, analytics]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dlq-reprocessor
+spec:
+  selector:
+    matchLabels:
+      app: dlq-reprocessor
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+

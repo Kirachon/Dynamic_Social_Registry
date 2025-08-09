@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -22,20 +23,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-configure_logging()
-from dsrs_common.cors import apply_cors
-apply_cors(app)
-Base.metadata.create_all(bind=engine)
-Instrumentator().instrument(app).expose(app)
-from dsrs_common.tracing import init_tracing
-init_tracing("registry", app)
-from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
-from .health_checks import liveness_check, readiness_check
-app.include_router(health_router)
-set_liveness_checker(liveness_check)
-set_readiness_checker(readiness_check)
-from .startup import setup_background
-setup_background(app)
+def init_app():
+    """Initialize application components - called on startup, not import"""
+    configure_logging()
+    from dsrs_common.cors import apply_cors
+    apply_cors(app)
+    Base.metadata.create_all(bind=engine)
+    Instrumentator().instrument(app).expose(app)
+    from dsrs_common.tracing import init_tracing
+    init_tracing("registry", app)
+    from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+    from .health_checks import liveness_check, readiness_check
+    app.include_router(health_router)
+    set_liveness_checker(liveness_check)
+    set_readiness_checker(readiness_check)
+    from .startup import setup_background
+    setup_background(app)
+
+# Only initialize if running as main application, not during testing
+if os.getenv("TESTING") != "1":
+    init_app()
 
 # DI settings
 async def auth_settings():

@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy import text
 from .db import SessionLocal
-from dsrs_common.events import Event, topic_for
+from dsrs_common.events import topic_for
 from dsrs_common.kafka import get_producer
 
 async def publish_loop(poll_interval: float = 1.0):

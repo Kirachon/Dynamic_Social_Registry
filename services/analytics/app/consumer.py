@@ -1,5 +1,3 @@
-import asyncio
-from sqlalchemy import text
 from pymongo import MongoClient
 from dsrs_common.kafka import make_consumer, next_event
 from dsrs_common.events import Event

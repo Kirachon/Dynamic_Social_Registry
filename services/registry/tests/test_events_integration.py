@@ -1,9 +1,11 @@
-import asyncio
 import os
 import pytest
-from testcontainers.kafka import KafkaContainer
 from httpx import AsyncClient
-from app.main import app
+
+os.environ["TESTING"] = "1"
+os.environ["OTEL_ENABLE"] = "0"
+
+from services.registry.app.main import app
 
 @pytest.mark.asyncio
 async def test_kafka_topics_health():

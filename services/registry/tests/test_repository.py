@@ -1,5 +1,4 @@
 import os
-import time
 import pytest
 from testcontainers.postgres import PostgresContainer
 
@@ -17,9 +16,11 @@ def pg_url():
 @pytest.fixture()
 def db_session(pg_url):
     os.environ["DATABASE_URL"] = pg_url
+    os.environ["TESTING"] = "1"
+    os.environ["OTEL_ENABLE"] = "0"
     # Import after env is set so engine binds to container
-    from app.db import Base, engine, SessionLocal
-    from app.models import Household
+    from services.registry.app.db import Base, engine, SessionLocal
+    from services.registry.app.models import Household
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -36,7 +37,7 @@ def db_session(pg_url):
 
 
 def test_household_repository_list(db_session):
-    from app.repository import HouseholdRepository
+    from services.registry.app.repository import HouseholdRepository
     repo = HouseholdRepository(db_session)
     rows = repo.list()
     ids = sorted([r.id for r in rows])

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-lag-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-lag-exporter
+  template:
+    metadata:
+      labels:
+        app: kafka-lag-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: seglo/kafka-lag-exporter:0.7.1
+          args: ["--reporter-prometheus-broker-port=9999"]
+          env:
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: KAFKA_BROKERS
+          ports:
+            - containerPort: 9999
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-lag-exporter
+spec:
+  selector:
+    app: kafka-lag-exporter
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9999
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-lag-exporter
+spec:
+  selector:
+    matchLabels:
+      app: kafka-lag-exporter
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+

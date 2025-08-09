@@ -1,5 +1,3 @@
-import asyncio
-from aiokafka import AIOKafkaConsumer
 from dsrs_common.events import Event
 from dsrs_common.kafka import make_consumer
 from .db import SessionLocal

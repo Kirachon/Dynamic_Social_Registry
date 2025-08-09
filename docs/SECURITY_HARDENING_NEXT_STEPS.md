@@ -1,16 +1,17 @@
 # DSRS Security Hardening – Next Steps
 
 ## Objective
-Prepare staging/prod for secure operation by enforcing OIDC at the gateway, disabling insecure dev bypass, and adding core observability.
+Enforce JWT at the edge using Kong community plugins while keeping service-side JWKS verification as the authority. Disable insecure dev bypass in non-dev environments and ensure observability remains OSS-only.
 
 ## Actions
-- Kong OIDC (Keycloak)
-  - Provide dsrs-secrets with OIDC_CLIENT_ID / OIDC_CLIENT_SECRET
-  - Set dsrs-config ISSUER to Keycloak realm URL
-  - Apply infra/k8s/kong.yaml
-- Disable dev bypass
-  - Ensure ALLOW_INSECURE_LOCAL is NOT present in staging/prod overlays (it is not included now)
-  - Services rely on JWKS verify in dsrs_common.security
+- Kong Edge Enforcement (community jwt plugin)
+  - K8s: infra/k8s/kong.yaml already enables the `jwt` plugin with:
+    - claims_to_verify: ["exp"], key_claim_name: iss, secret_is_base64: false
+  - Compose (local): infra/docker/kong/kong.yml now enables the same `jwt` plugin to exercise edge enforcement locally.
+  - Note: Kong CE `jwt` plugin validates tokens against configured credentials/keys; we rely on service-side JWKS for authoritative validation and use Kong to block missing/expired tokens.
+- Service-side JWT/JWKS Authority
+  - services/shared/dsrs_common/security.py performs JWKS verification using issuer/audience from env.
+  - Do NOT set `ALLOW_INSECURE_LOCAL` in staging/prod overlays. Keep it only for local development convenience.
 - OTEL/Prometheus
   - Apply infra/k8s/otel-collector.yaml
   - Deploy Prometheus via kube-prometheus-stack (Helm) and scrape services
@@ -19,7 +20,8 @@ Prepare staging/prod for secure operation by enforcing OIDC at the gateway, disa
   - Apply infra/k8s/dlq-reprocessor-deployment.yaml
 
 ## Validation
-- Use a real JWT from Keycloak; access via Kong; verify 200 for protected endpoints
-- Check OTEL collector receives spans; Prometheus can scrape targets
-- Simulate DLQ entry and verify reprocessor republishes to main topic
+- Via Kong (no Authorization): protected endpoints return 401.
+- Via Kong (valid JWT): protected endpoints return 200; services additionally verify JWKS.
+- Check OTEL collector receives spans; Prometheus scrapes targets.
+- Simulate DLQ entry and verify reprocessor republishes to main topic.
 

@@ -9,6 +9,19 @@ resources:
   - ../../k8s/otel-collector.yaml
   - ../../k8s/dlq-reprocessor-deployment.yaml
   - ../../k8s/grafana.yaml
+  - ../../k8s/networkpolicies/00-default-deny.yaml
+  - ../../k8s/networkpolicies/10-allow-kong-to-services.yaml
+  - ../../k8s/networkpolicies/20-allow-services-egress.yaml
+  - ../../k8s/networkpolicies/30-allow-prometheus-scrape.yaml
+  - ../../k8s/hpa/registry-hpa.yaml
+  - ../../k8s/hpa/eligibility-hpa.yaml
+  - ../../k8s/hpa/payment-hpa.yaml
+  - ../../k8s/hpa/analytics-hpa.yaml
+  - ../../k8s/pdb/registry-pdb.yaml
+  - ../../k8s/pdb/eligibility-pdb.yaml
+  - ../../k8s/pdb/payment-pdb.yaml
+  - ../../k8s/pdb/analytics-pdb.yaml
+  - external-secrets.yaml
 configMapGenerator:
   - name: dsrs-config
     literals:
@@ -19,12 +32,13 @@ configMapGenerator:
       - ISSUER=https://auth.staging.example/realms/dsrs
       - AUDIENCE=dsrs-api
       - KAFKA_BROKERS=dsrs-kafka-kafka-bootstrap:9092
-secretGenerator:
-  - name: dsrs-secrets
-    literals:
-      - registry_db_url=postgresql+psycopg://<set-in-secret>:<set-in-secret>@postgres:5432/registry
-      - payment_db_url=postgresql+psycopg://<set-in-secret>:<set-in-secret>@postgres:5432/payment
-      - analytics_mongo_url=mongodb://mongo:27017
+# External Secrets replaces secretGenerator
+# secretGenerator:
+#   - name: dsrs-secrets
+#     literals:
+#       - registry_db_url=...
+#       - payment_db_url=...
+#       - analytics_mongo_url=...
 generatorOptions:
   disableNameSuffixHash: true
 

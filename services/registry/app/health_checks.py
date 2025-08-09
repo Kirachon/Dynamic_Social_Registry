@@ -1,5 +1,3 @@
-import os
-import asyncio
 from sqlalchemy import text
 from .db import engine
 from aiokafka import AIOKafkaProducer

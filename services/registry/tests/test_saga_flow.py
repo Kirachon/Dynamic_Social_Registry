@@ -1,19 +1,27 @@
-import asyncio
 import os
-import json
 import pytest
 from testcontainers.kafka import KafkaContainer
+from testcontainers.postgres import PostgresContainer
 from sqlalchemy import text
 
-from app.db import SessionLocal, Base, engine
-from app.models import Household
-from app.producer import emit_household_registered
+os.environ["TESTING"] = "1"
+os.environ["OTEL_ENABLE"] = "0"
+
+from services.registry.app.db import SessionLocal
+from services.registry.app.models import Household
+from services.registry.app.producer import emit_household_registered
 
 @pytest.mark.asyncio
 async def test_registry_to_payment_saga(monkeypatch):
-    # Start Kafka container for the test
-    with KafkaContainer() as kafka:
+    # Start Kafka and Postgres containers for the test
+    with KafkaContainer() as kafka, PostgresContainer("postgres:15") as pg:
         os.environ['KAFKA_BROKERS'] = kafka.get_bootstrap_server()
+        os.environ['DATABASE_URL'] = pg.get_connection_url().replace('postgresql://', 'postgresql+psycopg://')
+        os.environ['ALLOW_INSECURE_LOCAL'] = '1'  # Allow auth bypass for tests
+
+        # Import after environment is set
+        from services.registry.app.db import Base, engine
+
         # Prepare DB
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)

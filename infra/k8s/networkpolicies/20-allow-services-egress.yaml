@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-egress
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [identity, registry, eligibility, payment, analytics] }
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9092 # Kafka
+        - protocol: TCP
+          port: 5432 # Postgres
+        - protocol: TCP
+          port: 27017 # Mongo
+        - protocol: TCP
+          port: 4317 # OTEL gRPC
+        - protocol: TCP
+          port: 4318 # OTEL HTTP
+

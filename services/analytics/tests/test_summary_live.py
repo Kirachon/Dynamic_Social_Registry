@@ -2,7 +2,11 @@ import os
 import pytest
 from httpx import AsyncClient
 from pymongo import MongoClient
-from app.main import app
+
+os.environ["TESTING"] = "1"
+os.environ["OTEL_ENABLE"] = "0"
+
+from services.analytics.app.main import app
 
 @pytest.mark.asyncio
 async def test_summary_returns_live_counters(monkeypatch):
