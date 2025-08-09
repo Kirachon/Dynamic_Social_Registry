@@ -72,8 +72,9 @@ async def create_household(payload: HouseholdCreate, user=Depends(get_current_us
     try:
         h = Household(id=payload.id, household_number=payload.household_number, region_code=payload.region_code, pmt_score=payload.pmt_score, status=payload.status)
         db.add(h)
+        # atomic outbox: insert within the same transaction before commit
+        emit_household_registered(h, db=db)
         db.commit()
-        emit_household_registered(h)
         return HouseholdDTO.model_validate(h.__dict__)
     except Exception as e:
         db.rollback()
@@ -96,8 +97,9 @@ async def update_household(id: str = Path(..., min_length=1, max_length=36), pay
             h.pmt_score = payload.pmt_score
         if payload.status is not None:
             h.status = payload.status
+        # atomic outbox: insert within same transaction
+        emit_household_registered(h, db=db)
         db.commit()
-        emit_household_registered(h)
         return HouseholdDTO.model_validate(h.__dict__)
     except HTTPException:
         db.rollback()
