@@ -5,6 +5,8 @@ from .schemas import AnalyticsSummary
 
 app = FastAPI(title="DSRS Analytics Service", version="0.1.0")
 configure_logging()
+from dsrs_common.cors import apply_cors
+apply_cors(app)
 from dsrs_common.tracing import init_tracing
 init_tracing("analytics", app)
 

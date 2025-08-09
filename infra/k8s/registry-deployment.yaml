@@ -24,9 +24,35 @@ spec:
                   name: dsrs-secrets
                   key: registry_db_url
             - name: ISSUER
-              value: https://auth.yourdomain/realms/dsrs
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: ISSUER
             - name: AUDIENCE
-              value: dsrs-api
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: AUDIENCE
+            - name: CORS_ALLOW_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: CORS_ALLOW_ORIGINS
+            - name: LOG_JSON
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: LOG_JSON
+            - name: OTEL_ENABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: OTEL_ENABLE
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
 ---
 apiVersion: v1
 kind: Service

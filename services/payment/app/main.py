@@ -8,6 +8,8 @@ from .repository import PaymentRepository
 
 app = FastAPI(title="DSRS Payment Service", version="0.1.0")
 configure_logging()
+from dsrs_common.cors import apply_cors
+apply_cors(app)
 Base.metadata.create_all(bind=engine)
 from dsrs_common.tracing import init_tracing
 init_tracing("payment", app)
