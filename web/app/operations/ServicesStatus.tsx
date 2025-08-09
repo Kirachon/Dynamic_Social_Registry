@@ -1,25 +1,24 @@
-import { fetchJSON } from '@/lib/api'
-
 type ServiceStatus = { name: string; status: 'up'|'degraded'|'down' }
 
 export default async function ServicesStatus() {
-  async function probe(name: string, base: string): Promise<ServiceStatus> {
+  async function probe(name: string, path: string): Promise<ServiceStatus> {
     try {
-      const r = await fetch(`${base}/health`, { cache: 'no-store' })
+      const base = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
+      const r = await fetch(`${base}${path}`, { cache: 'no-store' })
       if (r.ok) return { name, status: 'up' }
       return { name, status: 'degraded' }
     } catch {
       return { name, status: 'down' }
     }
   }
-  const bases: [string, string][] = [
-    ['Identity','http://localhost:8001'],
-    ['Registry','http://localhost:8002'],
-    ['Eligibility','http://localhost:8003'],
-    ['Payment','http://localhost:8004'],
-    ['Analytics','http://localhost:8005'],
+  const paths: [string, string][] = [
+    ['Identity','/identity/health'],
+    ['Registry','/registry/health'],
+    ['Eligibility','/eligibility/health'],
+    ['Payment','/payment/health'],
+    ['Analytics','/analytics/health'],
   ]
-  const statuses = await Promise.all(bases.map(([n,b]) => probe(n,b)))
+  const statuses = await Promise.all(paths.map(([n,p]) => probe(n,p)))
   return (
     <ul className="text-sm space-y-2">
       {statuses.map(s => (
