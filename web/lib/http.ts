@@ -55,6 +55,7 @@ export const Api = {
   registry: {
     householdsSummary() { return apiFetch('/registry/api/v1/households/summary') },
     householdsList() { return apiFetch('/registry/api/v1/households') },
+    createHousehold(payload: any) { return apiFetch('/registry/api/v1/households', { method: 'POST', body: JSON.stringify(payload) }) },
   },
   eligibility: {
     summary() { return apiFetch('/eligibility/api/v1/summary') },

@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ['Admin','/admin'],
                 ['Quality','/quality'],
                 ['Mobile Registration','/mobile/registration'],
+                ['Register Household','/registry/create'],
               ].map(([label, href]) => (
                 <div key={href}>
                   <Link className="block px-3 py-2 rounded hover:bg-gov-bg" href={href}>{label}</Link>
