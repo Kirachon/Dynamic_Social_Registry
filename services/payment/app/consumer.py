@@ -5,6 +5,8 @@ from dsrs_common.kafka import make_consumer
 from .db import SessionLocal
 from sqlalchemy import text
 
+from .metrics import PAYMENTS_SCHEDULED, PAYMENT_SCHEDULE_TIME
+
 async def handle_eligibility_event(evt: Event):
     if evt.type != "eligibility.assessed.approved":
         return
@@ -17,8 +19,10 @@ async def handle_eligibility_event(evt: Event):
         # schedule a payment for this household
         hid = evt.data.get("id")
         pid = evt.id
-        db.execute(text("INSERT INTO payments (id, beneficiary_id, amount, status) VALUES (:id, :bid, :amt, :st)"),
-                   {"id": pid, "bid": hid, "amt": 3000, "st": "Scheduled"})
+        with PAYMENT_SCHEDULE_TIME.time():
+            db.execute(text("INSERT INTO payments (id, beneficiary_id, amount, status) VALUES (:id, :bid, :amt, :st)"),
+                       {"id": pid, "bid": hid, "amt": 3000, "st": "Scheduled"})
+        PAYMENTS_SCHEDULED.inc()
         # outbox: payment.scheduled
         out_evt = Event(type="payment.scheduled", source="payment", subject=pid, data={"id": pid, "beneficiary_id": hid, "amount": 3000, "status": "Scheduled"}, traceparent=evt.traceparent)
         db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),

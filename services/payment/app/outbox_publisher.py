@@ -16,7 +16,8 @@ async def publish_loop(poll_interval: float = 1.0):
             producer = await get_producer()
             for r in rows:
                 evt = Event.from_json(r.payload)
-                await producer.send_and_wait(topic_for(evt.type), evt.to_json().encode("utf-8"))
+                from dsrs_common.kafka import send_event
+                await send_event(producer, topic_for(evt.type), evt.to_json().encode("utf-8"), evt.traceparent)
                 from dsrs_common.metrics import EVENTS_PUBLISHED
                 EVENTS_PUBLISHED.labels(service="payment", topic=topic_for(evt.type)).inc()
                 db.execute(text("UPDATE outbox SET published_at = NOW() WHERE id = :id"), {"id": r.id})

@@ -2,6 +2,7 @@ import asyncio
 from sqlalchemy import text
 from .db import SessionLocal
 from dsrs_common.events import Event
+from .metrics import PAYMENTS_COMPLETED
 
 async def completion_loop(interval: float = 5.0):
     while True:
@@ -12,6 +13,7 @@ async def completion_loop(interval: float = 5.0):
             rows = db.execute(text("SELECT id, beneficiary_id, amount FROM payments WHERE status='Scheduled' LIMIT 10")).fetchall()
             for r in rows:
                 db.execute(text("UPDATE payments SET status='Completed' WHERE id=:id"), {"id": r.id})
+                PAYMENTS_COMPLETED.inc()
                 out_evt = Event(type="payment.completed", source="payment", subject=r.id, data={
                     "id": r.id, "beneficiary_id": r.beneficiary_id, "amount": r.amount, "status": "Completed"
                 })
