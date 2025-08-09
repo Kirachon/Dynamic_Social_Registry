@@ -35,12 +35,20 @@ app.include_router(health_router)
 set_liveness_checker(liveness_check)
 set_readiness_checker(readiness_check)
 
+from pymongo import MongoClient
+import os
+
 @app.get("/api/v1/analytics/summary", response_model=AnalyticsSummary)
 async def summary(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    # Read live counters from MongoDB
+    mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    client = MongoClient(mongo_url)
+    col = client.get_database().get_collection("metrics")
+    doc = col.find_one({"_id":"summary"}) or {}
     return AnalyticsSummary(
-        risk_model_accuracy=0.87,
-        beneficiaries_total=18500000,
-        coverage_rate=0.945,
-        non_compliance_rate=0.078,
+        assessed_total=int(doc.get("assessed", 0)),
+        approved_total=int(doc.get("approved", 0)),
+        payments_scheduled_total=int(doc.get("payments_scheduled", 0)),
+        payments_completed_total=int(doc.get("payments_completed", 0)),
     )
 
