@@ -25,6 +25,7 @@ resources:
 configMapGenerator:
   - name: dsrs-config
     literals:
+      - ENVIRONMENT=staging
       - CORS_ALLOW_ORIGINS=https://staging.dsrs.example
       - LOG_JSON=1
       - OTEL_ENABLE=1
@@ -32,6 +33,7 @@ configMapGenerator:
       - ISSUER=https://auth.staging.example/realms/dsrs
       - AUDIENCE=dsrs-api
       - KAFKA_BROKERS=dsrs-kafka-kafka-bootstrap:9092
+      # NOTE: ALLOW_INSECURE_LOCAL is NOT set - JWT enforcement is mandatory in staging
 # External Secrets replaces secretGenerator
 # secretGenerator:
 #   - name: dsrs-secrets

@@ -1,0 +1,174 @@
+groups:
+  - name: dsrs-saga-alerts
+    rules:
+      # Service Health Alerts
+      - alert: DSRSServiceDown
+        expr: up{job=~"registry|eligibility|payment|analytics"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "DSRS {{ $labels.job }} service is down"
+          description: "{{ $labels.job }} service on {{ $labels.instance }} has been down for more than 1 minute."
+          runbook_url: "https://docs.dsrs.example.com/runbooks/service-down"
+
+      - alert: DSRSServiceHighErrorRate
+        expr: rate(dsrs_http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate in {{ $labels.service }}"
+          description: "{{ $labels.service }} has error rate of {{ $value }} errors/sec for more than 2 minutes."
+
+      # Database Alerts
+      - alert: DSRSDatabaseConnectionsHigh
+        expr: dsrs_db_connections_active / dsrs_db_connections_max > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High database connection usage in {{ $labels.service }}"
+          description: "{{ $labels.service }} is using {{ $value | humanizePercentage }} of available database connections."
+
+      - alert: DSRSDatabaseConnectionsExhausted
+        expr: dsrs_db_connections_active / dsrs_db_connections_max > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Database connections nearly exhausted in {{ $labels.service }}"
+          description: "{{ $labels.service }} is using {{ $value | humanizePercentage }} of available database connections."
+
+      # Kafka Consumer Lag Alerts
+      - alert: DSRSKafkaConsumerLagHigh
+        expr: kafka_consumer_lag_sum{topic=~"registry.*|eligibility.*|payment.*"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          topic: "{{ $labels.topic }}"
+          consumer_group: "{{ $labels.consumergroup }}"
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.consumergroup }} has lag of {{ $value }} messages on topic {{ $labels.topic }}."
+
+      - alert: DSRSKafkaConsumerLagCritical
+        expr: kafka_consumer_lag_sum{topic=~"registry.*|eligibility.*|payment.*"} > 10000
+        for: 2m
+        labels:
+          severity: critical
+          topic: "{{ $labels.topic }}"
+          consumer_group: "{{ $labels.consumergroup }}"
+        annotations:
+          summary: "Critical Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.consumergroup }} has critical lag of {{ $value }} messages on topic {{ $labels.topic }}."
+
+      # Saga Flow Performance Alerts
+      - alert: DSRSEventProcessingLatencyHigh
+        expr: histogram_quantile(0.95, rate(dsrs_event_processing_duration_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High event processing latency in {{ $labels.service }}"
+          description: "95th percentile event processing latency is {{ $value }}s in {{ $labels.service }}."
+
+      - alert: DSRSHouseholdRegistrationStalled
+        expr: rate(dsrs_households_created_total[10m]) == 0 and time() - dsrs_households_created_total > 600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Household registration appears stalled"
+          description: "No households have been registered in the last 10 minutes."
+
+      # Business Logic Alerts
+      - alert: DSRSEligibilityAssessmentFailureRate
+        expr: rate(dsrs_eligibility_decisions_total{status="error"}[5m]) / rate(dsrs_eligibility_decisions_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High eligibility assessment failure rate"
+          description: "{{ $value | humanizePercentage }} of eligibility assessments are failing."
+
+      - alert: DSRSPaymentProcessingStalled
+        expr: rate(dsrs_payments_total{status="scheduled"}[10m]) > 0 and rate(dsrs_payments_total{status="completed"}[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment processing appears stalled"
+          description: "Payments are being scheduled but none are completing."
+
+      # Resource Usage Alerts
+      - alert: DSRSHighMemoryUsage
+        expr: (container_memory_usage_bytes{container=~"registry|eligibility|payment|analytics"} / container_spec_memory_limit_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.container }}"
+        annotations:
+          summary: "High memory usage in {{ $labels.container }}"
+          description: "{{ $labels.container }} is using {{ $value | humanizePercentage }} of available memory."
+
+      - alert: DSRSHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container=~"registry|eligibility|payment|analytics"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.container }}"
+        annotations:
+          summary: "High CPU usage in {{ $labels.container }}"
+          description: "{{ $labels.container }} CPU usage is {{ $value | humanizePercentage }} for more than 10 minutes."
+
+  - name: dsrs-sla-alerts
+    rules:
+      # SLA-based alerts
+      - alert: DSRSSLAViolationAvailability
+        expr: (rate(dsrs_http_requests_total{status!~"5.."}[5m]) / rate(dsrs_http_requests_total[5m])) < 0.999
+        for: 1m
+        labels:
+          severity: critical
+          sla: "availability"
+        annotations:
+          summary: "SLA violation: Availability below 99.9%"
+          description: "Service availability is {{ $value | humanizePercentage }}, below SLA target of 99.9%."
+
+      - alert: DSRSSLAViolationLatency
+        expr: histogram_quantile(0.95, rate(dsrs_http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          sla: "latency"
+        annotations:
+          summary: "SLA violation: 95th percentile latency above 500ms"
+          description: "95th percentile response time is {{ $value }}s, above SLA target of 500ms."
+
+  - name: dsrs-security-alerts
+    rules:
+      # Security-related alerts
+      - alert: DSRSUnauthorizedAccessAttempts
+        expr: rate(dsrs_http_requests_total{status="401"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          security: "authentication"
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} unauthorized access attempts per second detected."
+
+      - alert: DSRSAuthenticationBypassDetected
+        expr: dsrs_auth_bypass_enabled == 1 and dsrs_environment != "development"
+        for: 0m
+        labels:
+          severity: critical
+          security: "authentication"
+        annotations:
+          summary: "Authentication bypass enabled in non-development environment"
+          description: "ALLOW_INSECURE_LOCAL is enabled in {{ $labels.environment }} environment."

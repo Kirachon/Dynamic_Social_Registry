@@ -9,12 +9,13 @@ resources:
 configMapGenerator:
   - name: dsrs-config
     literals:
+      - ENVIRONMENT=development
       - CORS_ALLOW_ORIGINS=http://localhost:3000
       - LOG_JSON=0
       - OTEL_ENABLE=0
       - ISSUER=http://localhost:8080/realms/dsrs
       - AUDIENCE=dsrs-api
-      - ALLOW_INSECURE_LOCAL=1
+      - ALLOW_INSECURE_LOCAL=1  # Development bypass allowed
 secretGenerator:
   - name: dsrs-secrets
     literals:

@@ -8,12 +8,17 @@ export const metadata: Metadata = {
   description: 'Dynamic Social Registry System Dashboards (Prototype)',
 }
 
+import Providers from './providers'
+import AuthButtons from '@/components/AuthButtons'
+import ErrorBoundary from '@/components/ErrorBoundary'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-gov-bg text-gov-text">
-        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-gov-accent text-white px-3 py-1 rounded">Skip to content</a>
-        <div className="min-h-screen grid grid-cols-[260px_1fr]">
+        <Providers>
+          <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-gov-accent text-white px-3 py-1 rounded">Skip to content</a>
+          <div className="min-h-screen grid grid-cols-[260px_1fr]">
           <aside className="bg-gov-surface border-r border-gov-border p-4 hidden md:block">
             <h1 className="text-lg font-semibold mb-4">DSRS Dashboards</h1>
             <nav className="space-y-2 text-sm">
@@ -29,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ['Admin','/admin'],
                 ['Quality','/quality'],
                 ['Mobile Registration','/mobile/registration'],
+                ['Register Household','/registry/create'],
               ].map(([label, href]) => (
                 <div key={href}>
                   <Link className="block px-3 py-2 rounded hover:bg-gov-bg" href={href}>{label}</Link>
@@ -42,10 +48,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <button className="md:hidden px-3 py-2 border rounded" aria-label="Open navigation">☰</button>
                 <span className="font-semibold">Dynamic Social Registry System</span>
               </div>
-              <div className="text-sm text-gov-muted">Prototype | Accessible Neutral Theme</div>
+              <div className="text-sm text-gov-muted flex items-center gap-3">
+                  <span>Prototype | Accessible Neutral Theme</span>
+                  {/* @ts-expect-error Client component */}
+                  <div className="ml-2">
+                    {/* @ts-expect-error Client component */}
+                    <AuthButtons />
+                  </div>
+                </div>
             </header>
             <main id="main" className="p-4 max-w-[1600px] mx-auto">
-              {children}
+              {/* @ts-expect-error Client component */}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </main>
           </div>
         </div>

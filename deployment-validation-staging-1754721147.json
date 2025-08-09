@@ -1,0 +1,62 @@
+{
+  "environment": "staging",
+  "timestamp": "2025-08-09 06:32:27 UTC",
+  "manifests": {
+    "valid_manifests": [
+      "infra\\k8s\\analytics-deployment.yaml",
+      "infra\\k8s\\dlq-reprocessor-deployment.yaml",
+      "infra\\k8s\\eligibility-deployment.yaml",
+      "infra\\k8s\\grafana.yaml",
+      "infra\\k8s\\identity-deployment.yaml",
+      "infra\\k8s\\ingress.yaml",
+      "infra\\k8s\\kafka-lag-exporter.yaml",
+      "infra\\k8s\\kong.yaml",
+      "infra\\k8s\\kustomization.yaml",
+      "infra\\k8s\\otel-collector.yaml",
+      "infra\\k8s\\payment-deployment.yaml",
+      "infra\\k8s\\probes.yaml",
+      "infra\\k8s\\registry-deployment.yaml"
+    ],
+    "invalid_manifests": []
+  },
+  "environment_config": {
+    "missing_vars": [
+      "DATABASE_URL",
+      "KAFKA_BROKERS",
+      "MONGO_URL",
+      "CORS_ALLOW_ORIGINS"
+    ],
+    "present_vars": []
+  },
+  "services": {
+    "registry": {
+      "status": "unreachable",
+      "error": "All connection attempts failed"
+    },
+    "eligibility": {
+      "status": "unreachable",
+      "error": "All connection attempts failed"
+    },
+    "payment": {
+      "status": "unreachable",
+      "error": "All connection attempts failed"
+    },
+    "analytics": {
+      "status": "unreachable",
+      "error": "All connection attempts failed"
+    },
+    "identity": {
+      "status": "unreachable",
+      "error": "All connection attempts failed"
+    }
+  },
+  "smoke_tests": {
+    "tests_passed": 0,
+    "tests_failed": 2,
+    "details": [
+      "\u274c Some services failed health checks",
+      "\u274c API endpoint test failed: All connection attempts failed"
+    ]
+  },
+  "overall_status": "NOT_READY - No services are running (expected for validation without deployment)"
+}

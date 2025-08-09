@@ -1,0 +1,147 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "DSRS Saga Flow Overview",
+    "tags": ["dsrs", "saga", "microservices"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Saga Flow Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\"registry|eligibility|payment|analytics\"}",
+            "legendFormat": "{{job}} - {{instance}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Household Registration Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dsrs_households_created_total[5m])",
+            "legendFormat": "Households/sec"
+          }
+        ],
+        "yAxes": [
+          {"label": "Households per second", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Eligibility Assessment Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "dsrs_eligibility_decisions_total",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Payment Processing Status",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "dsrs_payments_total",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Event Processing Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dsrs_event_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dsrs_event_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Kafka Consumer Lag",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kafka_consumer_lag_sum{topic=~\"registry.*|eligibility.*|payment.*\"}",
+            "legendFormat": "{{topic}} - {{consumergroup}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Messages", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "Database Connection Pool",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dsrs_db_connections_active",
+            "legendFormat": "{{service}} - Active"
+          },
+          {
+            "expr": "dsrs_db_connections_idle",
+            "legendFormat": "{{service}} - Idle"
+          }
+        ],
+        "yAxes": [
+          {"label": "Connections", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Error Rate by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(dsrs_http_requests_total{status=~\"4..|5..\"}[5m])",
+            "legendFormat": "{{service}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Errors/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "total_tests": 9,
+  "passed": 0,
+  "failed": 0,
+  "errors": 9,
+  "warnings": 0,
+  "duration": 22.32263469696045,
+  "timestamp": "2025-08-09 06:29:18 UTC",
+  "results": [
+    {
+      "test": "registry_health",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "eligibility_health",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "payment_health",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "analytics_health",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "identity_health",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "registry_api",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "identity_api",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "analytics_api",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    },
+    {
+      "test": "cors_configuration",
+      "status": "ERROR",
+      "error": "All connection attempts failed"
+    }
+  ]
+}

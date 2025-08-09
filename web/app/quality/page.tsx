@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import QualityMetrics from './QualityMetrics'
 
 export default function QualityPage(){
   return (
@@ -6,13 +7,8 @@ export default function QualityPage(){
       <h2 className="text-xl font-semibold">Quality Assurance Dashboard</h2>
 
       <SectionCard title="KEY QUALITY METRICS">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-          <div className="p-2 border rounded">Code Coverage<br/><span className="font-semibold">84%</span></div>
-          <div className="p-2 border rounded">Build Status<br/><span className="font-semibold">✓ Passing</span></div>
-          <div className="p-2 border rounded">Test Pass Rate<br/><span className="font-semibold">98.2%</span></div>
-          <div className="p-2 border rounded">Bugs Found<br/><span className="font-semibold">23 Open</span></div>
-          <div className="p-2 border rounded">Tech Debt<br/><span className="font-semibold">4.2%</span></div>
-        </div>
+        {/* @ts-expect-error Client component */}
+        <QualityMetrics />
       </SectionCard>
 
       <SectionCard title="TEST EXECUTION MATRIX">

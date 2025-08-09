@@ -1,27 +1,17 @@
-import { fetchJSON } from '@/lib/api'
-
-type OpsStats = {
-  beneficiaries_total: number
-  coverage_rate: number
-  transactions_per_min: number
-  error_rate: number
-}
+import { Api } from '@/lib/http'
 
 export default async function OpsStats() {
-  const aBase = process.env.NEXT_PUBLIC_ANALYTICS_API || 'http://localhost:8005'
-  const rBase = process.env.NEXT_PUBLIC_REGISTRY_API || 'http://localhost:8002'
   let beneficiaries_total = 0
   let coverage_rate = 0
   try {
-    const summary = await fetchJSON<{beneficiaries_total:number, coverage_rate:number}>(`${aBase}/api/v1/analytics/summary`)
-    beneficiaries_total = summary.beneficiaries_total
-    coverage_rate = summary.coverage_rate
+    const summary = await Api.analytics.summary()
+    beneficiaries_total = summary?.beneficiaries_total ?? 0
+    coverage_rate = summary?.coverage_rate ?? 0
   } catch {}
-  let transactions_per_min = 8456
-  let error_rate = 0.0003
+  const transactions_per_min = 8456
+  const error_rate = 0.0003
   try {
-    const rsum = await fetchJSON<{total:number}>(`${rBase}/api/v1/households/summary`)
-    // optionally derive additional stats
+    await Api.registry.householdsSummary()
   } catch {}
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -20,12 +20,20 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r services/${{ matrix.service }}/requirements.txt
-          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka]
-      - name: Run unit tests
-        run: pytest -q services/${{ matrix.service }}/tests
+          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka] pytest-cov
+      - name: Run unit tests with coverage
+        run: |
+          pytest -v --cov=services/${{ matrix.service }}/app --cov-report=xml --cov-report=term services/${{ matrix.service }}/tests
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.service }}
+          name: ${{ matrix.service }}-coverage
 
   e2e-backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,38 +45,71 @@ jobs:
           pip install -r services/registry/requirements.txt
           pip install -r services/eligibility/requirements.txt
           pip install -r services/payment/requirements.txt
-          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka]
-      - name: Run e2e tests (bounded)
+          pip install -r services/analytics/requirements.txt
+          pip install pytest httpx pytest-asyncio pytest-testcontainers testcontainers[postgresql] testcontainers[kafka] pytest-timeout
+      - name: Run comprehensive e2e tests with Testcontainers
         env:
           OTEL_ENABLE: "0"
-        run: pytest -q services/tests_e2e -k "full_saga_end_to_end or idempotency" -q
+          ENVIRONMENT: "test"
+        run: |
+          # Run saga flow tests with timeout
+          pytest -v --timeout=300 services/tests_e2e/test_saga_with_testcontainers.py
+          # Run existing e2e tests
+          pytest -v --timeout=180 services/tests_e2e -k "full_saga_end_to_end or idempotency"
 
-  integration:
+  security-validation:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Compose up (DBs, services, gateway)
+      - name: Compose up (DBs, services, gateway) with security enforcement
         run: |
           docker compose up -d --build postgres mongo redis
-          ALLOW_INSECURE_LOCAL=0 docker compose up -d --build registry payment analytics identity eligibility kong
+          # Start services with ALLOW_INSECURE_LOCAL=0 to enforce JWT
+          ENVIRONMENT=staging ALLOW_INSECURE_LOCAL=0 docker compose up -d --build registry payment analytics identity eligibility kong
           # wait for kong and services
           for i in {1..60}; do curl -sf http://localhost:8000/ -o /dev/null && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8002/health && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8004/health && break || sleep 1; done
           for i in {1..30}; do curl -sf http://localhost:8005/health && break || sleep 1; done
-      - name: API smoke tests via Kong (auth enforced)
+      - name: Run security validation
+        env:
+          ENVIRONMENT: staging
+          KONG_ADMIN_URL: http://localhost:8001
+          KONG_PROXY_URL: http://localhost:8000
+        run: |
+          chmod +x scripts/validate-security.sh
+          ./scripts/validate-security.sh
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose up (DBs, services, gateway)
+        run: |
+          docker compose up -d --build postgres mongo redis
+          ALLOW_INSECURE_LOCAL=1 docker compose up -d --build registry payment analytics identity eligibility kong
+          # wait for kong and services
+          for i in {1..60}; do curl -sf http://localhost:8000/ -o /dev/null && break || sleep 1; done
+          for i in {1..30}; do curl -sf http://localhost:8002/health && break || sleep 1; done
+          for i in {1..30}; do curl -sf http://localhost:8004/health && break || sleep 1; done
+          for i in {1..30}; do curl -sf http://localhost:8005/health && break || sleep 1; done
+      - name: API smoke tests via Kong (dev mode)
         run: |
           # Health via direct services (open)
           curl -f http://localhost:8002/health
-          # Protected endpoints via Kong should be 401 without Authorization
-          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/registry/api/v1/households) -eq 401 || exit 1
-          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/payment/api/v1/payments) -eq 401 || exit 1
-          test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/analytics/api/v1/analytics/summary) -eq 401 || exit 1
-          # Ensure Kong jwt plugin is active by checking Admin API plugins list
+          # In dev mode, some endpoints might be accessible, but Kong should still be active
           test $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/plugins) -eq 200 || exit 1
       - name: k6 perf smoke
         run: |
           docker run --rm --network host -v "$PWD/infra/perf/k6":/scripts grafana/k6 run /scripts/smoke.js
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
 
   docker-images:
     runs-on: ubuntu-latest
@@ -96,6 +137,43 @@ jobs:
             docker push "$image"
           done
 
+  database-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Start PostgreSQL
+        run: |
+          docker run -d --name postgres-test \
+            -e POSTGRES_DB=dsrs_test \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test123 \
+            -p 5432:5432 \
+            postgres:15-alpine
+          # Wait for PostgreSQL to be ready
+          for i in {1..30}; do
+            if docker exec postgres-test pg_isready -U test -d dsrs_test; then
+              break
+            fi
+            sleep 1
+          done
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install alembic psycopg2-binary sqlalchemy
+      - name: Test migrations for all services
+        env:
+          DATABASE_URL: postgresql+psycopg://test:test123@localhost:5432/dsrs_test
+        run: |
+          chmod +x scripts/run-migrations.sh
+          ./scripts/run-migrations.sh
+      - name: Cleanup
+        if: always()
+        run: docker stop postgres-test && docker rm postgres-test
+
   kustomize-verify:
     runs-on: ubuntu-latest
     steps:
@@ -107,6 +185,22 @@ jobs:
       - name: Render staging overlay
         run: |
           kustomize build infra/kustomize/overlays/staging | head -n 50
+      - name: Validate security configuration
+        run: |
+          # Check that staging overlay doesn't have ALLOW_INSECURE_LOCAL
+          if kustomize build infra/kustomize/overlays/staging | grep -q "ALLOW_INSECURE_LOCAL"; then
+            echo "❌ FAIL: ALLOW_INSECURE_LOCAL found in staging overlay"
+            exit 1
+          else
+            echo "✅ PASS: No ALLOW_INSECURE_LOCAL in staging overlay"
+          fi
+          # Check that production overlay doesn't have ALLOW_INSECURE_LOCAL
+          if kustomize build infra/kustomize/overlays/prod | grep -q "ALLOW_INSECURE_LOCAL"; then
+            echo "❌ FAIL: ALLOW_INSECURE_LOCAL found in production overlay"
+            exit 1
+          else
+            echo "✅ PASS: No ALLOW_INSECURE_LOCAL in production overlay"
+          fi
 
   frontend:
     runs-on: ubuntu-latest
