@@ -51,8 +51,9 @@ services:
       ISSUER: http://localhost:8080/realms/dsrs
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
-      REDIS_URL: redis://redis:6379/0
-    depends_on: [redis]
+      DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8003:8000"]
 
   payment:

@@ -10,15 +10,24 @@ async def handle_eligibility_event(evt: Event):
         return
     db = SessionLocal()
     try:
+        # idempotency
+        exists = db.execute(text("SELECT 1 FROM processed_events WHERE id=:id"), {"id": evt.id}).first()
+        if exists:
+            return
         # schedule a payment for this household
         hid = evt.data.get("id")
         pid = evt.id
         db.execute(text("INSERT INTO payments (id, beneficiary_id, amount, status) VALUES (:id, :bid, :amt, :st)"),
                    {"id": pid, "bid": hid, "amt": 3000, "st": "Scheduled"})
-        # TODO outbox: emit payment.scheduled event
+        # outbox: payment.scheduled
+        out_evt = Event(type="payment.scheduled", source="payment", subject=pid, data={"id": pid, "beneficiary_id": hid, "amount": 3000, "status": "Scheduled"})
+        db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),
+                   {"id": out_evt.id, "agg": pid, "type": out_evt.type, "payload": out_evt.to_json()})
+        db.execute(text("INSERT INTO processed_events (id) VALUES (:id)"), {"id": evt.id})
         db.commit()
     except Exception:
         db.rollback()
+        # TODO DLQ
     finally:
         db.close()
 

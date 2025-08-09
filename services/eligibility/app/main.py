@@ -10,6 +10,8 @@ from dsrs_common.cors import apply_cors
 apply_cors(app)
 from dsrs_common.tracing import init_tracing
 init_tracing("eligibility", app)
+from .startup import setup_background
+setup_background(app)
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")

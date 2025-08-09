@@ -13,6 +13,8 @@ apply_cors(app)
 Base.metadata.create_all(bind=engine)
 from dsrs_common.tracing import init_tracing
 init_tracing("payment", app)
+from .startup import setup_background
+setup_background(app)
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
