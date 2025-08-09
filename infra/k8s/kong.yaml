@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  labels:
+    app: kong
+data:
+  kong.yaml: |
+    _format_version: "3.0"
+    _transform: true
+    services:
+      - name: identity
+        url: http://identity:8000
+        routes:
+          - name: identity-route
+            paths: ["/identity"]
+            strip_path: true
+      - name: registry
+        url: http://registry:8000
+        routes:
+          - name: registry-route
+            paths: ["/registry"]
+            strip_path: true
+      - name: eligibility
+        url: http://eligibility:8000
+        routes:
+          - name: eligibility-route
+            paths: ["/eligibility"]
+            strip_path: true
+      - name: payment
+        url: http://payment:8000
+        routes:
+          - name: payment-route
+            paths: ["/payment"]
+            strip_path: true
+      - name: analytics
+        url: http://analytics:8000
+        routes:
+          - name: analytics-route
+            paths: ["/analytics"]
+            strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins: ["$CORS_ALLOW_ORIGINS"]
+          methods: ["GET","POST","PUT","DELETE","OPTIONS"]
+          headers: ["Authorization","Content-Type"]
+          exposed_headers: ["*"]
+          credentials: true
+          max_age: 3600
+      - name: rate-limiting
+        config:
+          minute: 6000
+          policy: local
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 10
+      - name: bot-detection
+      - name: jwt
+        config:
+          claims_to_verify: ["exp"]
+          key_claim_name: iss
+          secret_is_base64: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - name: kong
+          image: kong:3.6
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: /config/kong.yaml
+            - name: KONG_LOG_LEVEL
+              value: info
+            - name: KONG_PROXY_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ADMIN_ERROR_LOG
+              value: /dev/stderr
+            - name: CORS_ALLOW_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: dsrs-config
+                  key: CORS_ALLOW_ORIGINS
+          ports:
+            - containerPort: 8000
+            - containerPort: 8001
+          volumeMounts:
+            - name: kong-config
+              mountPath: /config
+      volumes:
+        - name: kong-config
+          configMap:
+            name: kong-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong
+spec:
+  selector:
+    app: kong
+  ports:
+    - name: proxy
+      port: 80
+      targetPort: 8000
+    - name: admin
+      port: 8001
+      targetPort: 8001
+

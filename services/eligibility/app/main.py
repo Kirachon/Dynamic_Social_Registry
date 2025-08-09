@@ -6,6 +6,8 @@ from dsrs_common.security import get_current_user, AuthSettings
 
 app = FastAPI(title="DSRS Eligibility Service", version="0.1.0")
 configure_logging()
+from dsrs_common.cors import apply_cors
+apply_cors(app)
 from dsrs_common.tracing import init_tracing
 init_tracing("eligibility", app)
 

@@ -21,6 +21,8 @@ app.add_middleware(
 )
 
 configure_logging()
+from dsrs_common.cors import apply_cors
+apply_cors(app)
 Base.metadata.create_all(bind=engine)
 Instrumentator().instrument(app).expose(app)
 from dsrs_common.tracing import init_tracing

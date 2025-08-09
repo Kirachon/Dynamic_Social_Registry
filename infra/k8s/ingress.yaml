@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsrs-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "$CORS_ALLOW_ORIGINS"
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+spec:
+  tls:
+    - hosts:
+        - dsrs.example
+      secretName: dsrs-tls
+  rules:
+    - host: dsrs.example
+      http:
+        paths:
+          - path: /identity/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: identity
+                port:
+                  number: 80
+          - path: /registry/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: registry
+                port:
+                  number: 80
+          - path: /eligibility/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: eligibility
+                port:
+                  number: 80
+          - path: /payment/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: payment
+                port:
+                  number: 80
+          - path: /analytics/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics
+                port:
+                  number: 80
+

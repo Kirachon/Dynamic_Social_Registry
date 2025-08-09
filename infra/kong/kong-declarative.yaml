@@ -1,0 +1,57 @@
+_format_version: "3.0"
+_transform: true
+services:
+  - name: identity
+    url: http://identity:8000
+    routes:
+      - name: identity-route
+        paths: ["/identity"]
+        strip_path: true
+  - name: registry
+    url: http://registry:8000
+    routes:
+      - name: registry-route
+        paths: ["/registry"]
+        strip_path: true
+  - name: eligibility
+    url: http://eligibility:8000
+    routes:
+      - name: eligibility-route
+        paths: ["/eligibility"]
+        strip_path: true
+  - name: payment
+    url: http://payment:8000
+    routes:
+      - name: payment-route
+        paths: ["/payment"]
+        strip_path: true
+  - name: analytics
+    url: http://analytics:8000
+    routes:
+      - name: analytics-route
+        paths: ["/analytics"]
+        strip_path: true
+plugins:
+  - name: cors
+    config:
+      origins: ["${CORS_ALLOW_ORIGINS}"]
+      methods: ["GET","POST","PUT","DELETE","OPTIONS"]
+      headers: ["Authorization","Content-Type"]
+      exposed_headers: ["*"]
+      credentials: true
+      max_age: 3600
+  - name: rate-limiting
+    config:
+      minute: 6000
+      policy: local
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+  - name: bot-detection
+  - name: jwt
+    config:
+      claims_to_verify: ["exp"]
+      key_claim_name: iss
+      secret_is_base64: false
+      run_on_preflight: false
+
