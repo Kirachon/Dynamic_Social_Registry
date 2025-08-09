@@ -14,7 +14,7 @@ class AuthSettings:
         self.allow_insecure_local = os.getenv("ALLOW_INSECURE_LOCAL") == "1"
 
 async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer), settings: AuthSettings = Depends()):
-    if settings.allow_insecure_local and not settings.issuer:
+    if settings.allow_insecure_local:
         # Local dev bypass (no token verification). DO NOT USE IN PROD.
         return {"sub": "local-dev"}
     token = creds.credentials

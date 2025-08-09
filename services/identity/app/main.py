@@ -4,6 +4,8 @@ from dsrs_common.logging import configure_logging
 
 app = FastAPI(title="DSRS Identity Service", version="0.1.0")
 configure_logging()
+from dsrs_common.tracing import init_tracing
+init_tracing("identity", app)
 
 class AuthRequest(BaseModel):
     username: str

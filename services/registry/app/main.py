@@ -23,6 +23,8 @@ app.add_middleware(
 configure_logging()
 Base.metadata.create_all(bind=engine)
 Instrumentator().instrument(app).expose(app)
+from dsrs_common.tracing import init_tracing
+init_tracing("registry", app)
 
 # DI settings
 async def auth_settings():

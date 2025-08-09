@@ -9,6 +9,8 @@ from .repository import PaymentRepository
 app = FastAPI(title="DSRS Payment Service", version="0.1.0")
 configure_logging()
 Base.metadata.create_all(bind=engine)
+from dsrs_common.tracing import init_tracing
+init_tracing("payment", app)
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")

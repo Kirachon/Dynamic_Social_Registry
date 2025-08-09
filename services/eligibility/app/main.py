@@ -6,6 +6,8 @@ from dsrs_common.security import get_current_user, AuthSettings
 
 app = FastAPI(title="DSRS Eligibility Service", version="0.1.0")
 configure_logging()
+from dsrs_common.tracing import init_tracing
+init_tracing("eligibility", app)
 
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
