@@ -17,6 +17,18 @@ spec:
           image: ghcr.io/your-org/analytics:latest
           ports:
             - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /healthz/liveness
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz/readiness
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             - name: MONGO_URL
               valueFrom:

@@ -29,9 +29,11 @@ async def _stop():
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+from .health_checks import liveness_check, readiness_check
+app.include_router(health_router)
+set_liveness_checker(liveness_check)
+set_readiness_checker(readiness_check)
 
 @app.get("/api/v1/analytics/summary", response_model=AnalyticsSummary)
 async def summary(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):

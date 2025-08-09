@@ -10,8 +10,11 @@ from dsrs_common.cors import apply_cors
 apply_cors(app)
 from dsrs_common.tracing import init_tracing
 init_tracing("eligibility", app)
-from dsrs_common.health import router as health_router
+from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+from .health_checks import liveness_check, readiness_check
 app.include_router(health_router)
+set_liveness_checker(liveness_check)
+set_readiness_checker(readiness_check)
 from .startup import setup_background
 setup_background(app)
 
