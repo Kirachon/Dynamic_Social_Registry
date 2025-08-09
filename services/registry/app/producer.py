@@ -5,21 +5,24 @@ from dsrs_common.trace import current_traceparent
 
 
 def emit_household_registered(h, db=None):
-    evt = Event(type="registry.household.registered", source="registry", subject=h.id, data={
-        "id": h.id,
-        "household_number": getattr(h, 'household_number', None),
-        "region_code": getattr(h, 'region_code', None),
-        "pmt_score": getattr(h, 'pmt_score', None),
+    evt = Event(type="registry.household.registered", source="registry", subject=str(h.id), data={
+        "id": str(h.id),
+        "head_of_household_name": h.head_of_household_name,
+        "address": h.address,
+        "phone_number": h.phone_number,
+        "email": h.email,
+        "household_size": h.household_size,
+        "monthly_income": float(h.monthly_income) if h.monthly_income else None,
     }, traceparent=current_traceparent())
     if db is not None:
         # Use caller's transaction/session for atomicity; caller controls commit
-        db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),
+        db.execute(text("INSERT INTO event_outbox (id, aggregate_id, event_type, event_data) VALUES (:id, :agg, :type, :payload)"),
                    {"id": evt.id, "agg": h.id, "type": evt.type, "payload": evt.to_json()})
         return evt.id
     # Fallback: own session (non-atomic with business write)
     _db = SessionLocal()
     try:
-        _db.execute(text("INSERT INTO outbox (id, aggregate_id, type, payload) VALUES (:id, :agg, :type, :payload)"),
+        _db.execute(text("INSERT INTO event_outbox (id, aggregate_id, event_type, event_data) VALUES (:id, :agg, :type, :payload)"),
                    {"id": evt.id, "agg": h.id, "type": evt.type, "payload": evt.to_json()})
         _db.commit()
         return evt.id

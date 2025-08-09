@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 import os
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 
 async def liveness_check():
     client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=1000)

@@ -1,4 +1,5 @@
 import os
+import uuid
 from fastapi import FastAPI, Depends, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -7,7 +8,7 @@ from dsrs_common.logging import configure_logging
 from dsrs_common.security import get_current_user, AuthSettings
 from .db import SessionLocal, Base, engine
 from .repository import HouseholdRepository
-from .schemas import HouseholdsSummary, HouseholdCreate, HouseholdUpdate
+from .schemas import HouseholdsSummary, HouseholdCreate, HouseholdUpdate, HouseholdResponse
 from .models import Household
 from .producer import emit_household_registered
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -48,24 +49,19 @@ if os.getenv("TESTING") != "1":
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
 
-class HouseholdDTO(BaseModel):
-    id: str
-    household_number: str
-    region_code: str
-    pmt_score: float
-    status: str
+# Remove the old HouseholdDTO - we'll use HouseholdResponse from schemas
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-@app.get("/api/v1/households", response_model=List[HouseholdDTO])
+@app.get("/api/v1/households", response_model=List[HouseholdResponse])
 async def list_households(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
     db = SessionLocal()
     try:
         repo = HouseholdRepository(db)
         rows = repo.list()
-        return [HouseholdDTO.model_validate(r.__dict__) for r in rows]
+        return [HouseholdResponse.model_validate(r) for r in rows]
     finally:
         db.close()
 
@@ -78,41 +74,55 @@ async def households_summary(user=Depends(get_current_user), settings: AuthSetti
     finally:
         db.close()
 
-@app.post("/api/v1/households", response_model=HouseholdDTO, status_code=201)
+@app.post("/api/v1/households", response_model=HouseholdResponse, status_code=201)
 async def create_household(payload: HouseholdCreate, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
     db = SessionLocal()
     try:
-        h = Household(id=payload.id, household_number=payload.household_number, region_code=payload.region_code, pmt_score=payload.pmt_score, status=payload.status)
+        h = Household(
+            head_of_household_name=payload.head_of_household_name,
+            address=payload.address,
+            phone_number=payload.phone_number,
+            email=payload.email,
+            household_size=payload.household_size,
+            monthly_income=payload.monthly_income
+        )
         db.add(h)
+        db.flush()  # Flush to get the generated ID without committing
         # atomic outbox: insert within the same transaction before commit
         emit_household_registered(h, db=db)
         db.commit()
-        return HouseholdDTO.model_validate(h.__dict__)
+        db.refresh(h)  # Refresh to get the timestamps
+        return HouseholdResponse.model_validate(h)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
 
-@app.put("/api/v1/households/{id}", response_model=HouseholdDTO)
-async def update_household(id: str = Path(..., min_length=1, max_length=36), payload: HouseholdUpdate = None, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+@app.put("/api/v1/households/{id}", response_model=HouseholdResponse)
+async def update_household(id: uuid.UUID, payload: HouseholdUpdate = None, user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
     db = SessionLocal()
     try:
         h = db.get(Household, id)
         if not h:
             raise HTTPException(status_code=404, detail="Household not found")
-        if payload.household_number is not None:
-            h.household_number = payload.household_number
-        if payload.region_code is not None:
-            h.region_code = payload.region_code
-        if payload.pmt_score is not None:
-            h.pmt_score = payload.pmt_score
-        if payload.status is not None:
-            h.status = payload.status
+        if payload.head_of_household_name is not None:
+            h.head_of_household_name = payload.head_of_household_name
+        if payload.address is not None:
+            h.address = payload.address
+        if payload.phone_number is not None:
+            h.phone_number = payload.phone_number
+        if payload.email is not None:
+            h.email = payload.email
+        if payload.household_size is not None:
+            h.household_size = payload.household_size
+        if payload.monthly_income is not None:
+            h.monthly_income = payload.monthly_income
         # atomic outbox: insert within same transaction
         emit_household_registered(h, db=db)
         db.commit()
-        return HouseholdDTO.model_validate(h.__dict__)
+        db.refresh(h)  # Refresh to get updated timestamps
+        return HouseholdResponse.model_validate(h)
     except HTTPException:
         db.rollback()
         raise

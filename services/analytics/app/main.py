@@ -16,13 +16,18 @@ def init_app():
     apply_cors(app)
     from dsrs_common.tracing import init_tracing
     init_tracing("analytics", app)
+    from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
+    from .health_checks import liveness_check, readiness_check
+    app.include_router(health_router)
+    set_liveness_checker(liveness_check)
+    set_readiness_checker(readiness_check)
 
 # Background consumer
 
 _tasks = []
 @app.on_event("startup")
 async def _start():
-    mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     _tasks.append(asyncio.create_task(consume_analytics(mongo_url)))
 
 @app.on_event("shutdown")
@@ -33,12 +38,6 @@ async def _stop():
 async def auth_settings():
     return AuthSettings(issuer="https://auth.local/issuer", audience="dsrs-api")
 
-    from dsrs_common.health import router as health_router, set_liveness_checker, set_readiness_checker
-    from .health_checks import liveness_check, readiness_check
-    app.include_router(health_router)
-    set_liveness_checker(liveness_check)
-    set_readiness_checker(readiness_check)
-
 # Only initialize if running as main application, not during testing
 if os.getenv("TESTING") != "1":
     init_app()
@@ -46,7 +45,7 @@ if os.getenv("TESTING") != "1":
 @app.get("/api/v1/analytics/summary", response_model=AnalyticsSummary)
 async def summary(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
     # Read live counters from MongoDB
-    mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     client = MongoClient(mongo_url)
     col = client.get_database().get_collection("metrics")
     doc = col.find_one({"_id":"summary"}) or {}
