@@ -37,7 +37,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
-    depends_on: [postgres]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8002:8000"]
 
   eligibility:
@@ -65,7 +66,8 @@ services:
       AUDIENCE: dsrs-api
       ALLOW_INSECURE_LOCAL: "1"
       DATABASE_URL: postgresql+psycopg://dsrs:dsrs@postgres:5432/dsrs
-    depends_on: [postgres]
+      KAFKA_BROKERS: redpanda:9092
+    depends_on: [postgres, redpanda]
     ports: ["8004:8000"]
 
   analytics:
@@ -103,4 +105,16 @@ services:
       - eligibility
       - payment
       - analytics
+
+  redpanda:
+    image: docker.redpanda.com/redpanda/redpanda:v24.1.8
+    command:
+      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "nc -z localhost 9092"]
+      interval: 5s
+      timeout: 2s
+      retries: 30
 

@@ -1,0 +1,35 @@
+import asyncio
+from aiokafka import AIOKafkaConsumer
+from dsrs_common.events import Event
+from dsrs_common.kafka import make_consumer
+from .db import SessionLocal
+from sqlalchemy import text
+
+async def handle_eligibility_event(evt: Event):
+    if evt.type != "eligibility.assessed.approved":
+        return
+    db = SessionLocal()
+    try:
+        # schedule a payment for this household
+        hid = evt.data.get("id")
+        pid = evt.id
+        db.execute(text("INSERT INTO payments (id, beneficiary_id, amount, status) VALUES (:id, :bid, :amt, :st)"),
+                   {"id": pid, "bid": hid, "amt": 3000, "st": "Scheduled"})
+        # TODO outbox: emit payment.scheduled event
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+async def consume_eligibility():
+    consumer = await make_consumer("eligibility.assessed", group_id="payment")
+    try:
+        while True:
+            msg = await consumer.getone()
+            evt = Event.from_json(msg.value.decode("utf-8"))
+            await handle_eligibility_event(evt)
+            await consumer.commit()
+    finally:
+        await consumer.stop()
+
