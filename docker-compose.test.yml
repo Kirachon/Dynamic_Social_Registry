@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  # Infrastructure Services
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dsrs
+      POSTGRES_USER: dsrs
+      POSTGRES_PASSWORD: dsrs123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dsrs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dsrs
+      MONGO_INITDB_ROOT_PASSWORD: dsrs123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # DSRS Services
+  registry:
+    build:
+      context: .
+      dockerfile: services/registry/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg://dsrs:dsrs123@postgres:5432/dsrs
+      - KAFKA_BROKERS=kafka:9092
+      - CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
+      - ALLOW_INSECURE_LOCAL=1
+      - OTEL_ENABLE=0
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  eligibility:
+    build:
+      context: .
+      dockerfile: services/eligibility/Dockerfile
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
+      - ALLOW_INSECURE_LOCAL=1
+      - OTEL_ENABLE=0
+    ports:
+      - "8002:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  payment:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg://dsrs:dsrs123@postgres:5432/dsrs
+      - KAFKA_BROKERS=kafka:9092
+      - CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
+      - ALLOW_INSECURE_LOCAL=1
+      - OTEL_ENABLE=0
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  analytics:
+    build:
+      context: .
+      dockerfile: services/analytics/Dockerfile
+    environment:
+      - MONGO_URL=mongodb://dsrs:dsrs123@mongodb:27017/dsrs?authSource=admin
+      - KAFKA_BROKERS=kafka:9092
+      - CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
+      - ALLOW_INSECURE_LOCAL=1
+      - OTEL_ENABLE=0
+    ports:
+      - "8004:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  identity:
+    build:
+      context: .
+      dockerfile: services/identity/Dockerfile
+    environment:
+      - CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
+      - ALLOW_INSECURE_LOCAL=1
+      - OTEL_ENABLE=0
+    ports:
+      - "8005:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  default:
+    name: dsrs-test-network
