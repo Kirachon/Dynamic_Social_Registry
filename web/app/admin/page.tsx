@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import UserSummary from './UserSummary'
 
 export default function AdminPage(){
   return (
@@ -17,9 +18,8 @@ export default function AdminPage(){
           <div className="mt-2 flex gap-2"><button className="px-2 py-1 border rounded text-sm">Edit Config</button><button className="px-2 py-1 border rounded text-sm">View Logs</button></div>
         </SectionCard>
         <SectionCard title="USER MANAGEMENT">
-          <ul className="text-sm space-y-1">
-            <li>Total Users: 12,456 | Active Sessions: 8,234 | Locked: 45 | Pending: 23</li>
-          </ul>
+          {/* @ts-expect-error Client component */}
+          <UserSummary />
           <div className="mt-2 flex gap-2"><button className="px-2 py-1 border rounded text-sm">Add User</button><button className="px-2 py-1 border rounded text-sm">Bulk Import</button><button className="px-2 py-1 border rounded text-sm">Export List</button></div>
         </SectionCard>
       </div>

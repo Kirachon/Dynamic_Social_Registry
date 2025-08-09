@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import SecurityMetrics from './SecurityMetrics'
 
 export default function SocPage(){
   return (
@@ -6,13 +7,8 @@ export default function SocPage(){
       <h2 className="text-xl font-semibold">Security Operations Center (SOC)</h2>
 
       <SectionCard title="KEY SECURITY METRICS">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-          <div className="p-2 border rounded">Blocked Attacks<br/><span className="font-semibold">1,245</span></div>
-          <div className="p-2 border rounded">Threats Detected<br/><span className="font-semibold">89</span></div>
-          <div className="p-2 border rounded">Incidents Active<br/><span className="font-semibold">3</span></div>
-          <div className="p-2 border rounded">Vulnerabilities<br/><span className="font-semibold">12</span></div>
-          <div className="p-2 border rounded">Compliance Score<br/><span className="font-semibold">94%</span></div>
-        </div>
+        {/* @ts-expect-error Client component */}
+        <SecurityMetrics />
       </SectionCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

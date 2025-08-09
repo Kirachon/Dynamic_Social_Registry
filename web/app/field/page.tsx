@@ -1,4 +1,5 @@
 import SectionCard from '../components/SectionCard'
+import FieldMetrics from './FieldMetrics'
 
 export default function FieldPage(){
   return (
@@ -8,13 +9,9 @@ export default function FieldPage(){
         <div className="text-sm text-gov-muted">Region VII - Cebu</div>
       </div>
 
-      <SectionCard title="TODAY'S OVERVIEW (2024-12-20)">
-        <ul className="text-sm space-y-1">
-          <li>📊 Visits Completed: 8/12</li>
-          <li>📊 Registrations: 5</li>
-          <li>📊 Verifications: 3</li>
-          <li>📊 Distance Traveled: 15.2km</li>
-        </ul>
+      <SectionCard title="TODAY'S OVERVIEW">
+        {/* @ts-expect-error Client component */}
+        <FieldMetrics />
       </SectionCard>
 
       <SectionCard title="SCHEDULED VISITS">

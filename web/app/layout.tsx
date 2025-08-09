@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 import Providers from './providers'
 import AuthButtons from '@/components/AuthButtons'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -57,7 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
             </header>
             <main id="main" className="p-4 max-w-[1600px] mx-auto">
-              {children}
+              {/* @ts-expect-error Client component */}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </main>
           </div>
         </div>
