@@ -1,0 +1,25 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Events Published",
+      "targets": [{"expr": "sum(dsrs_events_published_total)"}]
+    },
+    {
+      "type": "stat",
+      "title": "Events Consumed",
+      "targets": [{"expr": "sum(dsrs_events_consumed_total)"}]
+    },
+    {
+      "type": "stat",
+      "title": "Events Failed",
+      "targets": [{"expr": "sum(dsrs_events_failed_total)"}]
+    }
+  ],
+  "schemaVersion": 37,
+  "title": "DSRS Events Overview",
+  "version": 1
+}
+

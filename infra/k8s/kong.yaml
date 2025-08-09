@@ -61,16 +61,8 @@ data:
           claims_to_verify: ["exp"]
           key_claim_name: iss
           secret_is_base64: false
-      # Prefer OIDC (if plugin available in runtime). Configure via env/secret.
-      - name: openid-connect
-        config:
-          issuer: "$OIDC_ISSUER"
-          client_id: "$OIDC_CLIENT_ID"
-          client_secret: "$OIDC_CLIENT_SECRET"
-          scopes: ["openid","profile","email"]
-          bearer_only: true
-          verify_parameters: true
-          filters: ["~^/health$"]
+      # Note: Using service-level JWT/JWKS verification (open-source) instead of enterprise OIDC at gateway.
+      # Kong continues to provide rate-limiting, CORS, and size limits. Consider enabling free community OIDC plugin if available.
 ---
 apiVersion: apps/v1
 kind: Deployment

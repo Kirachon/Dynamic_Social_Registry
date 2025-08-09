@@ -8,6 +8,7 @@ resources:
   - ../../k8s/analytics-deployment.yaml
   - ../../k8s/otel-collector.yaml
   - ../../k8s/dlq-reprocessor-deployment.yaml
+  - ../../k8s/grafana.yaml
 configMapGenerator:
   - name: dsrs-config
     literals:
