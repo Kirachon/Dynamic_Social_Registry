@@ -8,12 +8,16 @@ export const metadata: Metadata = {
   description: 'Dynamic Social Registry System Dashboards (Prototype)',
 }
 
+import Providers from './providers'
+import AuthButtons from '@/components/AuthButtons'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-gov-bg text-gov-text">
-        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-gov-accent text-white px-3 py-1 rounded">Skip to content</a>
-        <div className="min-h-screen grid grid-cols-[260px_1fr]">
+        <Providers>
+          <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-gov-accent text-white px-3 py-1 rounded">Skip to content</a>
+          <div className="min-h-screen grid grid-cols-[260px_1fr]">
           <aside className="bg-gov-surface border-r border-gov-border p-4 hidden md:block">
             <h1 className="text-lg font-semibold mb-4">DSRS Dashboards</h1>
             <nav className="space-y-2 text-sm">
@@ -44,8 +48,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="font-semibold">Dynamic Social Registry System</span>
               </div>
               <div className="text-sm text-gov-muted flex items-center gap-3">
-                  <a href="/login" className="underline">Login</a>
                   <span>Prototype | Accessible Neutral Theme</span>
+                  {/* @ts-expect-error Client component */}
+                  <div className="ml-2">
+                    {/* @ts-expect-error Client component */}
+                    <AuthButtons />
+                  </div>
                 </div>
             </header>
             <main id="main" className="p-4 max-w-[1600px] mx-auto">

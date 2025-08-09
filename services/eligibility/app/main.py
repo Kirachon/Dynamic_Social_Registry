@@ -59,3 +59,8 @@ async def eligibility_summary(user=Depends(get_current_user), settings: AuthSett
     finally:
         db.close()
 
+# Alias for frontend client which calls /api/v1/summary under the eligibility service route
+@app.get("/api/v1/summary")
+async def eligibility_summary_alias(user=Depends(get_current_user), settings: AuthSettings = Depends(auth_settings)):
+    return await eligibility_summary(user, settings)
+
