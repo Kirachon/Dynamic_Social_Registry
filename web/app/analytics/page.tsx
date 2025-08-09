@@ -1,5 +1,6 @@
 import SectionCard from '../components/SectionCard'
 import AnalyticsSummaryCard from './AnalyticsSummary'
+import LiveSagaChart from './LiveSagaChart'
 
 export default function AnalyticsPage(){
   return (
@@ -11,10 +12,10 @@ export default function AnalyticsPage(){
         <AnalyticsSummaryCard />
       </SectionCard>
 
-      <SectionCard title="PREDICTIVE ANALYTICS">
-        <div className="text-sm">Vulnerability Risk Prediction (Next 6 Months) — Accuracy pulled above</div>
-        <div className="h-48 bg-gov-bg border border-dashed border-gov-border rounded flex items-center justify-center text-gov-muted mt-2">Multi-series line chart placeholder</div>
-        <div className="text-sm mt-2">Key Factors: Economic indicators, weather patterns, employment rates</div>
+      <SectionCard title="REAL-TIME SAGA INDICATOR">
+        <div className="text-sm">Live metric from Analytics API (via Kong). Refreshes every 15s.</div>
+        {/* @ts-expect-error Client Component */}
+        <div className="mt-2"><LiveSagaChart /></div>
       </SectionCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
